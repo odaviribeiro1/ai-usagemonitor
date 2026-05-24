@@ -11,6 +11,20 @@ Each release is also published at
 
 Nothing yet.
 
+## [0.3.3] — 2026-05-24
+
+### Added
+
+- **aarch64 (ARM64) Linux binaries** in GitHub Releases. CI now builds
+  both `x86_64-unknown-linux-gnu` and `aarch64-unknown-linux-gnu`
+  tarballs via [`cross`](https://github.com/cross-rs/cross). Tests
+  still run only on the native x86_64 target (aarch64 binaries can't
+  execute on the x86 runner).
+- **`ai-usagebar-bin` PKGBUILD now multi-arch** with per-arch
+  `source_x86_64=` / `source_aarch64=` declarations. Arch users on
+  Asahi / RPi5 / Ampere / etc. can install the prebuilt binary the
+  same way as x86_64 users: `yay -S ai-usagebar-bin`.
+
 ## [0.3.2] — 2026-05-23
 
 ### Added
@@ -157,7 +171,8 @@ vendors. Highlights:
 - Live API smoke test suite (`make smoke`) that exercises the real
   undocumented endpoints to detect schema drift before users do.
 
-[Unreleased]: https://github.com/akitaonrails/ai-usagebar/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/akitaonrails/ai-usagebar/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.3.3
 [0.3.2]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.3.2
 [0.3.1]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.3.1
 [0.3.0]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.3.0

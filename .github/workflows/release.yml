@@ -20,11 +20,10 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             artifact: ai-usagebar-linux-x86_64
-          # aarch64 is cross-compiled. Listed in the PKGBUILD but currently
-          # gated behind nasm/ring availability for the cross target.
-          # Uncomment + add `cross` or zigbuild once Linux ARM is requested.
-          # - target: aarch64-unknown-linux-gnu
-          #   artifact: ai-usagebar-linux-aarch64
+            builder: cargo
+          - target: aarch64-unknown-linux-gnu
+            artifact: ai-usagebar-linux-aarch64
+            builder: cross
 
     runs-on: ubuntu-22.04
 
@@ -41,14 +40,22 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
-      - name: Install nasm (required by ring's x86_64 asm)
+      - name: Install nasm (x86_64 native build; ring assembles its primitives)
+        if: matrix.builder == 'cargo'
         run: sudo apt-get update && sudo apt-get install -y nasm
 
-      - name: Test
+      - name: Install cross (aarch64 cross-compile via Docker)
+        if: matrix.builder == 'cross'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Test (native only — aarch64 binaries can't run on x86 runner)
+        if: matrix.builder == 'cargo'
         run: cargo test --release --target ${{ matrix.target }}
 
       - name: Build release binaries
-        run: cargo build --release --target ${{ matrix.target }} --locked
+        run: ${{ matrix.builder }} build --release --target ${{ matrix.target }} --locked
 
       - name: Create tarball (both bins + LICENSE + config example)
         run: |
