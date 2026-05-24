@@ -4,6 +4,8 @@ Waybar widget + tabbed TUI for AI plan usage across **Anthropic Claude**, **Open
 
 Rust port of [`claudebar`](https://github.com/mryll/claudebar) (drop-in compatible) extended to four vendors. Same minimalist Pango-bordered tooltip design, same Omarchy theme auto-detection, same flock-protected OAuth refresh — but tested, modular, and reliable instead of 865 lines of bash.
 
+![Waybar widget showing `cld 29% · 1h 12m` in the top-right, with the hover tooltip showing Claude Max 20x session/weekly/sonnet/extra-usage progress bars](screenshot.png)
+
 ## Features
 
 - **Per-vendor Waybar modules** — same JSON output shape as claudebar.
@@ -242,6 +244,8 @@ make clippy                                        # cargo clippy -D warnings
 
 ## TUI controls
 
+![ai-usagebar-tui showing the OpenAI tab — Codex 5h and weekly gauges, Credits block with message-count ranges, tabs at top, key hints in the footer](screenshots/tui-openai.png)
+
 - `Tab` / `l` / `→` — next tab
 - `Shift+Tab` / `h` / `←` — previous tab
 - `r` — refresh active tab
@@ -249,9 +253,13 @@ make clippy                                        # cargo clippy -D warnings
 - `s` — open Settings overlay (primary vendor + API keys)
 - `q` / `Esc` / `Ctrl-C` — quit
 
-Auto-refresh runs every 60 seconds in the background.
+Auto-refresh runs every 60 seconds in the background. Different vendors render with consistent layout — here's OpenRouter showing the credit balance gauge (red because 98% consumed), usage-by-period totals, and tier:
+
+![ai-usagebar-tui showing the OpenRouter tab — Credit balance gauge at 98% in red ($13.67 left of $900), Usage by period with today/week/month, paid tier](screenshots/tui-openrouter.png)
 
 ### Settings overlay
+
+![Settings overlay floating over the TUI — Primary vendor radio (Anthropic selected), masked Z.AI API key (•••), masked OpenRouter API key (•••), Save button, key hints at bottom](screenshots/tui-settings.png)
 
 Press `s` while the TUI is open. The overlay lets you:
 
