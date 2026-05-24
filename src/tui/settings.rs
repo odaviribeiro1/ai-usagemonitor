@@ -287,10 +287,7 @@ fn save_to_config_default(state: &SettingsState) -> Result<()> {
         std::fs::create_dir_all(parent).map_err(|e| AppError::io_at(parent, e))?;
     }
     save_to_path(state, &path)?;
-    // Best-effort: no waybar running → pkill fails silently, no harm.
-    let _ = std::process::Command::new("pkill")
-        .args(["-RTMIN+13", "waybar"])
-        .status();
+    crate::waybar::request_refresh();
     Ok(())
 }
 
@@ -399,7 +396,12 @@ pub fn render(f: &mut Frame, area: Rect, state: &SettingsState, theme: &Theme) {
 
     // Primary vendor.
     f.render_widget(
-        Paragraph::new(label("Primary vendor", state.focus == Focus::Primary, fg, accent)),
+        Paragraph::new(label(
+            "Primary vendor",
+            state.focus == Focus::Primary,
+            fg,
+            accent,
+        )),
         chunks[0],
     );
     f.render_widget(
@@ -418,7 +420,13 @@ pub fn render(f: &mut Frame, area: Rect, state: &SettingsState, theme: &Theme) {
         chunks[3],
     );
     f.render_widget(
-        Paragraph::new(render_input(&state.zai, state.focus == Focus::ZaiKey, fg, accent, dim)),
+        Paragraph::new(render_input(
+            &state.zai,
+            state.focus == Focus::ZaiKey,
+            fg,
+            accent,
+            dim,
+        )),
         chunks[4],
     );
 
@@ -445,12 +453,17 @@ pub fn render(f: &mut Frame, area: Rect, state: &SettingsState, theme: &Theme) {
 
     // Save button.
     let save_style = if state.focus == Focus::SaveButton {
-        Style::default().fg(accent).add_modifier(Modifier::BOLD | Modifier::REVERSED)
+        Style::default()
+            .fg(accent)
+            .add_modifier(Modifier::BOLD | Modifier::REVERSED)
     } else {
         Style::default().fg(accent)
     };
     f.render_widget(
-        Paragraph::new(Line::from(Span::styled("   [ Save (Ctrl-S) ]   ", save_style))),
+        Paragraph::new(Line::from(Span::styled(
+            "   [ Save (Ctrl-S) ]   ",
+            save_style,
+        ))),
         chunks[8],
     );
 
@@ -466,12 +479,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &SettingsState, theme: &Theme) {
     }
 
     // Hint footer.
-    let hint = Line::from(vec![
-        Span::styled(
-            "  Tab/↑↓ move · ←→ pick vendor · Ctrl-V reveal · Ctrl-S save · Esc cancel",
-            Style::default().fg(dim),
-        ),
-    ]);
+    let hint = Line::from(vec![Span::styled(
+        "  Tab/↑↓ move · ←→ pick vendor · Ctrl-V reveal · Ctrl-S save · Esc cancel",
+        Style::default().fg(dim),
+    )]);
     f.render_widget(Paragraph::new(hint), chunks[10]);
 }
 
@@ -493,7 +504,10 @@ fn render_radio(selected: &VendorId, fg: Color, accent: Color, dim: Color) -> Li
         } else {
             Style::default().fg(dim)
         };
-        spans.push(Span::styled(format!("{glyph} {}  ", vendor_label(*v)), style));
+        spans.push(Span::styled(
+            format!("{glyph} {}  ", vendor_label(*v)),
+            style,
+        ));
         let _ = fg;
     }
     Line::from(spans)
@@ -731,7 +745,10 @@ api_key_env = "OPENROUTER_API_KEY"
             openrouter: KeyInput::default(),
             status: String::new(),
         };
-        assert_eq!(handle_key(&mut s, KeyCode::Tab, KeyModifiers::NONE), Action::Continue);
+        assert_eq!(
+            handle_key(&mut s, KeyCode::Tab, KeyModifiers::NONE),
+            Action::Continue
+        );
         assert_eq!(s.focus, Focus::ZaiKey);
         assert_eq!(
             handle_key(&mut s, KeyCode::BackTab, KeyModifiers::NONE),
@@ -749,7 +766,10 @@ api_key_env = "OPENROUTER_API_KEY"
             openrouter: KeyInput::default(),
             status: String::new(),
         };
-        assert_eq!(handle_key(&mut s, KeyCode::Esc, KeyModifiers::NONE), Action::Close);
+        assert_eq!(
+            handle_key(&mut s, KeyCode::Esc, KeyModifiers::NONE),
+            Action::Close
+        );
     }
 
     #[test]

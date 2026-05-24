@@ -247,9 +247,11 @@ mod tests {
 
     #[test]
     fn partial_config_falls_back_to_defaults() {
-        let f = write_toml(r#"[openai]
+        let f = write_toml(
+            r#"[openai]
 enabled = false
-"#);
+"#,
+        );
         let c = Config::load_from(f.path()).unwrap();
         assert!(!c.is_enabled(VendorId::Openai));
         // Other vendors keep their defaults.
@@ -299,7 +301,10 @@ enabled = false
         match err {
             crate::error::AppError::Credentials(msg) => {
                 assert!(msg.contains(var), "error should name env var: {msg}");
-                assert!(msg.contains("api_key"), "error should suggest config field: {msg}");
+                assert!(
+                    msg.contains("api_key"),
+                    "error should suggest config field: {msg}"
+                );
             }
             other => panic!("expected Credentials error, got {other:?}"),
         }

@@ -75,9 +75,15 @@ async fn anthropic_live() {
         .build()
         .unwrap();
     let endpoints = anthropic::fetch::Endpoints::default();
-    let out = anthropic::fetch_snapshot(&client, &creds_path, &cache, &endpoints, Duration::from_secs(0))
-        .await
-        .expect("anthropic fetch should succeed against the real API");
+    let out = anthropic::fetch_snapshot(
+        &client,
+        &creds_path,
+        &cache,
+        &endpoints,
+        Duration::from_secs(0),
+    )
+    .await
+    .expect("anthropic fetch should succeed against the real API");
 
     assert!(!out.snapshot.plan.is_empty(), "anthropic plan label empty");
     assert_pct("anthropic.session", out.snapshot.session.utilization_pct);
@@ -96,7 +102,9 @@ async fn anthropic_live() {
         out.snapshot.session.utilization_pct,
         out.snapshot.weekly.utilization_pct,
         out.snapshot.sonnet.as_ref().map(|s| s.utilization_pct),
-        out.snapshot.extra.map(|e| (e.spent.fmt_dollars(), e.limit.fmt_dollars())),
+        out.snapshot
+            .extra
+            .map(|e| (e.spent.fmt_dollars(), e.limit.fmt_dollars())),
     );
 }
 
@@ -118,9 +126,15 @@ async fn openai_live() {
         .build()
         .unwrap();
     let endpoints = openai::fetch::Endpoints::default();
-    let out = openai::fetch_snapshot(&client, &creds_path, &cache, &endpoints, Duration::from_secs(0))
-        .await
-        .expect("openai fetch should succeed against the real API");
+    let out = openai::fetch_snapshot(
+        &client,
+        &creds_path,
+        &cache,
+        &endpoints,
+        Duration::from_secs(0),
+    )
+    .await
+    .expect("openai fetch should succeed against the real API");
 
     assert!(!out.snapshot.plan.is_empty(), "openai plan label empty");
     assert_pct("openai.session", out.snapshot.session.utilization_pct);
@@ -145,9 +159,16 @@ async fn zai_live() {
         .build()
         .unwrap();
     let endpoints = zai::fetch::Endpoints::default();
-    let out = zai::fetch_snapshot(&client, &api_key, &cache, &endpoints, Duration::from_secs(0), None)
-        .await
-        .expect("zai fetch should succeed against the real API");
+    let out = zai::fetch_snapshot(
+        &client,
+        &api_key,
+        &cache,
+        &endpoints,
+        Duration::from_secs(0),
+        None,
+    )
+    .await
+    .expect("zai fetch should succeed against the real API");
 
     assert!(!out.snapshot.plan.is_empty(), "zai plan label empty");
     // Z.AI may legitimately return 0% on a fresh account, but at least one
@@ -185,9 +206,15 @@ async fn openrouter_live() {
         .build()
         .unwrap();
     let endpoints = openrouter::fetch::Endpoints::default();
-    let out = openrouter::fetch_snapshot(&client, &api_key, &cache, &endpoints, Duration::from_secs(0))
-        .await
-        .expect("openrouter fetch should succeed against the real API");
+    let out = openrouter::fetch_snapshot(
+        &client,
+        &api_key,
+        &cache,
+        &endpoints,
+        Duration::from_secs(0),
+    )
+    .await
+    .expect("openrouter fetch should succeed against the real API");
 
     assert!(out.snapshot.total_credits >= 0.0, "or.total_credits < 0");
     assert!(out.snapshot.total_usage >= 0.0, "or.total_usage < 0");

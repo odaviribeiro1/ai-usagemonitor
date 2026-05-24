@@ -97,9 +97,8 @@ pub async fn refresh(
         });
     }
 
-    serde_json::from_str(&body).map_err(|e| {
-        AppError::Schema(format!("token refresh response: {e}; body: {body}"))
-    })
+    serde_json::from_str(&body)
+        .map_err(|e| AppError::Schema(format!("token refresh response: {e}; body: {body}")))
 }
 
 /// Extract a human-readable error message from a non-2xx refresh body.
@@ -146,7 +145,10 @@ mod tests {
     #[test]
     fn parse_error_body_oauth_style() {
         let s = r#"{"error":"invalid_grant","error_description":"Refresh token expired"}"#;
-        assert_eq!(parse_error_body(s).as_deref(), Some("Refresh token expired"));
+        assert_eq!(
+            parse_error_body(s).as_deref(),
+            Some("Refresh token expired")
+        );
     }
 
     #[test]
@@ -184,9 +186,13 @@ mod tests {
             .await;
 
         let client = reqwest::Client::new();
-        let resp = refresh(&client, &format!("{}/v1/oauth/token", server.url()), "old-rt")
-            .await
-            .unwrap();
+        let resp = refresh(
+            &client,
+            &format!("{}/v1/oauth/token", server.url()),
+            "old-rt",
+        )
+        .await
+        .unwrap();
         assert_eq!(resp.access_token, "new-at");
         assert_eq!(resp.refresh_token.as_deref(), Some("new-rt"));
         assert_eq!(resp.expires_in, 3600);

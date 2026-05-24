@@ -74,6 +74,14 @@ impl App {
         self.vendors.get(self.active).copied()
     }
 
+    pub fn select_primary(&mut self, primary: Option<VendorId>) {
+        if let Some(p) = primary {
+            if let Some(idx) = self.vendors.iter().position(|v| *v == p) {
+                self.active = idx;
+            }
+        }
+    }
+
     pub fn next_tab(&mut self) {
         if !self.vendors.is_empty() {
             self.active = (self.active + 1) % self.vendors.len();
@@ -88,12 +96,7 @@ impl App {
 }
 
 /// Fetch and render one vendor — returns a `TabState`.
-pub async fn refresh_one(
-    client: &Client,
-    config: &Config,
-    _theme: &Theme,
-    vendor: VendorId,
-) -> TabState {
+pub async fn refresh_one(client: &Client, config: &Config, vendor: VendorId) -> TabState {
     match build_outcome(client, config, vendor).await {
         Ok(outcome) => TabState::Ready(Box::new(ReadyTab {
             snapshot: outcome.snapshot,
@@ -142,7 +145,14 @@ async fn build_outcome(
             )?;
             let cache = crate::cache::Cache::for_vendor("openrouter")?;
             let endpoints = crate::openrouter::fetch::Endpoints::default();
-            let outcome = crate::openrouter::fetch_snapshot(client, &api_key, &cache, &endpoints, DEFAULT_TTL).await?;
+            let outcome = crate::openrouter::fetch_snapshot(
+                client,
+                &api_key,
+                &cache,
+                &endpoints,
+                DEFAULT_TTL,
+            )
+            .await?;
             Ok(outcome.into())
         }
         VendorId::Zai => {
@@ -172,7 +182,9 @@ async fn build_outcome(
                 .clone()
                 .unwrap_or_else(|| crate::openai::creds::default_path().unwrap_or_default());
             let endpoints = crate::openai::fetch::Endpoints::default();
-            let outcome = crate::openai::fetch_snapshot(client, &creds_path, &cache, &endpoints, DEFAULT_TTL).await?;
+            let outcome =
+                crate::openai::fetch_snapshot(client, &creds_path, &cache, &endpoints, DEFAULT_TTL)
+                    .await?;
             Ok(outcome.into())
         }
     }
@@ -181,3 +193,22 @@ async fn build_outcome(
 /// Convenience for the watch-driven binary: how long to wait between
 /// automatic refreshes.
 pub const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn select_primary_moves_to_enabled_vendor() {
+        let mut app = App::new(vec![VendorId::Anthropic, VendorId::Openrouter]);
+        app.select_primary(Some(VendorId::Openrouter));
+        assert_eq!(app.active_vendor(), Some(VendorId::Openrouter));
+    }
+
+    #[test]
+    fn select_primary_ignores_disabled_vendor() {
+        let mut app = App::new(vec![VendorId::Anthropic]);
+        app.select_primary(Some(VendorId::Openai));
+        assert_eq!(app.active_vendor(), Some(VendorId::Anthropic));
+    }
+}

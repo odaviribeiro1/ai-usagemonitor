@@ -34,7 +34,11 @@ impl Cents {
     /// Format as `[-]$D.CC`. Negative values render `-$D.CC` (not `$-D.CC`),
     /// matching claudebar's `_fmt_dollars` (claudebar:532-537).
     pub fn fmt_dollars(self) -> String {
-        let (sign, abs) = if self.0 < 0 { ("-", -self.0) } else { ("", self.0) };
+        let (sign, abs) = if self.0 < 0 {
+            ("-", -self.0)
+        } else {
+            ("", self.0)
+        };
         format!("{sign}${}.{:02}", abs / 100, abs % 100)
     }
 }
@@ -156,7 +160,9 @@ impl OpenRouterSnapshot {
         if self.total_credits <= 0.0 {
             return 0;
         }
-        ((self.total_usage / self.total_credits) * 100.0).round().clamp(0.0, 100.0) as i32
+        ((self.total_usage / self.total_credits) * 100.0)
+            .round()
+            .clamp(0.0, 100.0) as i32
     }
 }
 
@@ -175,7 +181,10 @@ pub fn anthropic_severity(snap: &AnthropicSnapshot) -> crate::pacing::PaceSeveri
     // Extra usage only promotes severity if a rate-limit window is at 100%.
     let any_at_cap = snap.session.utilization_pct >= 100
         || snap.weekly.utilization_pct >= 100
-        || snap.sonnet.as_ref().is_some_and(|s| s.utilization_pct >= 100);
+        || snap
+            .sonnet
+            .as_ref()
+            .is_some_and(|s| s.utilization_pct >= 100);
     if any_at_cap {
         if let Some(extra) = snap.extra {
             let p = extra.percent();
@@ -231,13 +240,27 @@ mod tests {
 
     #[test]
     fn extra_percent_with_zero_limit_is_zero() {
-        assert_eq!(ExtraUsage { limit: Cents(0), spent: Cents(100) }.percent(), 0);
+        assert_eq!(
+            ExtraUsage {
+                limit: Cents(0),
+                spent: Cents(100)
+            }
+            .percent(),
+            0
+        );
     }
 
     #[test]
     fn extra_percent_truncates() {
         // Bash integer division — 33/100 -> 33%, 50/100 -> 50%.
-        assert_eq!(ExtraUsage { limit: Cents(10000), spent: Cents(3333) }.percent(), 33);
+        assert_eq!(
+            ExtraUsage {
+                limit: Cents(10000),
+                spent: Cents(3333)
+            }
+            .percent(),
+            33
+        );
     }
 
     #[test]

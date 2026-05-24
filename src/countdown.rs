@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn one_second_remaining_renders_zero_hours() {
         // Mirrors claudebar: anything > 0 but < 1 min → "0h 00m"
-        let now = at(2026, 5, 23, 12, 0, );
+        let now = at(2026, 5, 23, 12, 0);
         let reset = now + chrono::Duration::seconds(1);
         assert_eq!(format(Some(reset), now), "0h 00m");
     }

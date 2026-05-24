@@ -17,10 +17,8 @@ use super::fetch::FetchOutcome;
 
 pub const DEFAULT_FORMAT: &str = "${or_balance} · ${or_used_today}";
 
-pub struct OpenRouterVendor;
-
 /// Build the placeholder map for the OpenRouter snapshot.
-pub fn build_placeholders(snap: &OpenRouterSnapshot, _theme: &Theme) -> HashMap<&'static str, String> {
+pub fn build_placeholders(snap: &OpenRouterSnapshot) -> HashMap<&'static str, String> {
     placeholders(vec![
         ("icon", "󱙺".to_string()),
         ("vendor_short", "opr".to_string()),
@@ -39,14 +37,21 @@ pub fn build_placeholders(snap: &OpenRouterSnapshot, _theme: &Theme) -> HashMap<
         ("or_used_week", format_money(snap.usage_weekly)),
         ("or_used_month", format_money(snap.usage_monthly)),
         ("or_consumed_pct", snap.consumed_pct().to_string()),
-        ("or_free_tier", (if snap.is_free_tier { "free" } else { "paid" }).into()),
+        (
+            "or_free_tier",
+            (if snap.is_free_tier { "free" } else { "paid" }).into(),
+        ),
         (
             "or_limit",
-            snap.limit.map(format_money).unwrap_or_else(|| "unlimited".into()),
+            snap.limit
+                .map(format_money)
+                .unwrap_or_else(|| "unlimited".into()),
         ),
         (
             "or_limit_remaining",
-            snap.limit_remaining.map(format_money).unwrap_or_else(|| "unlimited".into()),
+            snap.limit_remaining
+                .map(format_money)
+                .unwrap_or_else(|| "unlimited".into()),
         ),
     ])
 }
@@ -72,7 +77,7 @@ pub fn render(
         .format
         .clone()
         .unwrap_or_else(|| DEFAULT_FORMAT.replace('$', ""));
-    let mut values = build_placeholders(snap, theme);
+    let mut values = build_placeholders(snap);
     // The default format above uses ${…} (legible in a shell context), so
     // strip the $ to match our placeholder syntax.
     values.insert("or_balance_bar", or_balance_bar(snap, theme));
@@ -172,7 +177,11 @@ fn render_tooltip(
         )));
     }
 
-    let tier_label = if snap.is_free_tier { "free tier" } else { "paid tier" };
+    let tier_label = if snap.is_free_tier {
+        "free tier"
+    } else {
+        "paid tier"
+    };
     lines.push(TooltipLine::Body("".into()));
     lines.push(TooltipLine::Body(format!(
         " <span foreground='{dim}'>  󰓹  {tier_label}</span>"
@@ -212,7 +221,6 @@ fn render_tooltip(
 
     render_bordered(&lines, theme)
 }
-
 
 impl From<FetchOutcome> for VendorOutcome {
     fn from(o: FetchOutcome) -> Self {

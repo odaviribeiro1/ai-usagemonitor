@@ -22,7 +22,6 @@ use crate::pango::severity_for;
 use crate::theme::Theme;
 use crate::tui::app::TabState;
 use crate::usage::VendorSnapshot;
-use crate::vendor::VendorId;
 
 /// One row of the panel body. Vendors emit a `Vec<Section>`; the renderer
 /// turns them into ratatui widgets.
@@ -40,21 +39,13 @@ pub enum Section {
     /// Free-form key/value text line.
     Text { label: String, value: String },
     /// A label followed by a multi-line dim block (no gauge).
-    Block {
-        label: String,
-        body: Vec<String>,
-    },
+    Block { label: String, body: Vec<String> },
     /// Visual spacer (one blank row).
     Spacer,
 }
 
 /// Build the section list for the currently-active vendor's snapshot.
-pub fn sections_for(
-    vendor: VendorId,
-    tab: &TabState,
-    now: DateTime<Utc>,
-    pace_tolerance: u32,
-) -> Vec<Section> {
+pub fn sections_for(tab: &TabState, now: DateTime<Utc>, pace_tolerance: u32) -> Vec<Section> {
     match tab {
         TabState::Loading => vec![
             Section::Spacer,
@@ -107,7 +98,6 @@ pub fn sections_for(
                 label: "".into(),
                 value: format!("  {updated}"),
             });
-            let _ = vendor;
             sections
         }
     }
@@ -139,11 +129,7 @@ fn anthropic_sections(
     v
 }
 
-fn openai_sections(
-    s: &crate::usage::OpenAiSnapshot,
-    now: DateTime<Utc>,
-    tol: u32,
-) -> Vec<Section> {
+fn openai_sections(s: &crate::usage::OpenAiSnapshot, now: DateTime<Utc>, tol: u32) -> Vec<Section> {
     let mut v = vec![Section::Title(s.plan.clone())];
     push_window(&mut v, "Codex 5h", &s.session, now, tol, true);
     push_window(&mut v, "Codex weekly", &s.weekly, now, tol, true);
@@ -152,7 +138,11 @@ fn openai_sections(
     }
     if let Some(c) = &s.credits {
         v.push(Section::Spacer);
-        let balance = if c.unlimited { "unlimited".into() } else { c.balance.clone() };
+        let balance = if c.unlimited {
+            "unlimited".into()
+        } else {
+            c.balance.clone()
+        };
         let mut body = vec![format!("balance: {}", balance)];
         if let Some((lo, hi)) = c.approx_local_messages {
             body.push(format!("≈ {lo}-{hi} local messages"));
@@ -160,7 +150,10 @@ fn openai_sections(
         if let Some((lo, hi)) = c.approx_cloud_messages {
             body.push(format!("≈ {lo}-{hi} cloud messages"));
         }
-        v.push(Section::Block { label: "Credits".into(), body });
+        v.push(Section::Block {
+            label: "Credits".into(),
+            body,
+        });
     }
     v
 }
@@ -238,13 +231,7 @@ fn push_window(
     let pct = w.utilization_pct.clamp(0, 100) as u16;
     let reset_text = countdown::format(w.resets_at, now);
     let footnote = if show_pacing {
-        let p = pacing::calc(
-            w.utilization_pct,
-            w.resets_at,
-            now,
-            w.window_duration,
-            tol,
-        );
+        let p = pacing::calc(w.utilization_pct, w.resets_at, now, w.window_duration, tol);
         format!(
             "Resets in {} · {}% elapsed · {}",
             reset_text, p.elapsed_pct, p.point_label
@@ -278,7 +265,11 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, sections: &[Section]) {
     let pin_last =
         matches!(sections.last(), Some(Section::Text { value, .. }) if value.contains("Updated"));
 
-    let body_end = if pin_last { sections.len() - 1 } else { sections.len() };
+    let body_end = if pin_last {
+        sections.len() - 1
+    } else {
+        sections.len()
+    };
     let mut constraints: Vec<Constraint> =
         sections[..body_end].iter().map(section_height).collect();
 
@@ -321,9 +312,7 @@ fn render_section(f: &mut Frame, area: Rect, theme: &Theme, s: &Section) {
         Section::Title(t) => {
             let line = Line::from(Span::styled(
                 format!("  {t}"),
-                Style::default()
-                    .fg(accent)
-                    .add_modifier(Modifier::BOLD),
+                Style::default().fg(accent).add_modifier(Modifier::BOLD),
             ));
             f.render_widget(Paragraph::new(line), area);
         }
@@ -333,7 +322,16 @@ fn render_section(f: &mut Frame, area: Rect, theme: &Theme, s: &Section) {
             severity,
             value_label,
             footnote,
-        } => render_metric(f, area, theme, label, *pct, *severity, value_label, footnote),
+        } => render_metric(
+            f,
+            area,
+            theme,
+            label,
+            *pct,
+            *severity,
+            value_label,
+            footnote,
+        ),
         Section::Text { label, value } => {
             let mut spans = Vec::new();
             if !label.is_empty() {
@@ -374,7 +372,11 @@ fn render_metric(
 
     let inner = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(1), Constraint::Length(1)])
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
         .split(area);
 
     // Row 1: label
@@ -494,17 +496,15 @@ mod tests {
                 spent: Cents(250),
             }),
         };
-        let sections = sections_for(
-            VendorId::Anthropic,
-            &ready(VendorSnapshot::Anthropic(snap)),
-            now(),
-            5,
-        );
+        let sections = sections_for(&ready(VendorSnapshot::Anthropic(snap)), now(), 5);
         // Title + 4 metrics (3 windows + extra) each with a Spacer before, plus
         // a trailing Spacer + Updated text. That's 1 + 4*2 + 2 = 11 sections.
         assert_eq!(sections.len(), 11);
         assert!(matches!(sections[0], Section::Title(_)));
-        let metric_count = sections.iter().filter(|s| matches!(s, Section::Metric { .. })).count();
+        let metric_count = sections
+            .iter()
+            .filter(|s| matches!(s, Section::Metric { .. }))
+            .count();
         assert_eq!(metric_count, 4);
     }
 
@@ -525,13 +525,11 @@ mod tests {
             sonnet: None,
             extra: None,
         };
-        let sections = sections_for(
-            VendorId::Anthropic,
-            &ready(VendorSnapshot::Anthropic(snap)),
-            now(),
-            5,
-        );
-        let metric_count = sections.iter().filter(|s| matches!(s, Section::Metric { .. })).count();
+        let sections = sections_for(&ready(VendorSnapshot::Anthropic(snap)), now(), 5);
+        let metric_count = sections
+            .iter()
+            .filter(|s| matches!(s, Section::Metric { .. }))
+            .count();
         assert_eq!(metric_count, 2);
     }
 
@@ -548,15 +546,18 @@ mod tests {
             limit: None,
             limit_remaining: None,
         };
-        let sections = sections_for(
-            VendorId::Openrouter,
-            &ready(VendorSnapshot::Openrouter(snap)),
-            now(),
-            5,
-        );
+        let sections = sections_for(&ready(VendorSnapshot::Openrouter(snap)), now(), 5);
         assert!(matches!(sections[0], Section::Title(_)));
-        assert!(sections.iter().any(|s| matches!(s, Section::Metric { label, .. } if label == "Credit balance")));
-        assert!(sections.iter().any(|s| matches!(s, Section::Block { label, .. } if label == "Usage by period")));
+        assert!(
+            sections
+                .iter()
+                .any(|s| matches!(s, Section::Metric { label, .. } if label == "Credit balance"))
+        );
+        assert!(
+            sections
+                .iter()
+                .any(|s| matches!(s, Section::Block { label, .. } if label == "Usage by period"))
+        );
     }
 
     #[test]
@@ -567,12 +568,7 @@ mod tests {
             weekly: None,
             mcp: None,
         };
-        let sections = sections_for(
-            VendorId::Zai,
-            &ready(VendorSnapshot::Zai(snap)),
-            now(),
-            5,
-        );
+        let sections = sections_for(&ready(VendorSnapshot::Zai(snap)), now(), 5);
         assert!(sections.iter().any(|s| matches!(
             s,
             Section::Text { value, .. } if value.contains("no usage windows reported")
@@ -581,7 +577,7 @@ mod tests {
 
     #[test]
     fn loading_state_yields_loading_section() {
-        let sections = sections_for(VendorId::Anthropic, &TabState::Loading, now(), 5);
+        let sections = sections_for(&TabState::Loading, now(), 5);
         assert!(sections.iter().any(|s| matches!(
             s,
             Section::Text { value, .. } if value.contains("Loading")
@@ -590,12 +586,7 @@ mod tests {
 
     #[test]
     fn error_state_includes_retry_hint() {
-        let sections = sections_for(
-            VendorId::Anthropic,
-            &TabState::Error("token expired".into()),
-            now(),
-            5,
-        );
+        let sections = sections_for(&TabState::Error("token expired".into()), now(), 5);
         assert!(sections.iter().any(|s| matches!(
             s,
             Section::Text { value, .. } if value.contains("token expired")
@@ -630,12 +621,11 @@ mod tests {
             }),
             source: OpenAiSource::CodexOauth,
         };
-        let sections = sections_for(
-            VendorId::Openai,
-            &ready(VendorSnapshot::Openai(snap)),
-            now(),
-            5,
+        let sections = sections_for(&ready(VendorSnapshot::Openai(snap)), now(), 5);
+        assert!(
+            sections
+                .iter()
+                .any(|s| matches!(s, Section::Block { label, .. } if label == "Credits"))
         );
-        assert!(sections.iter().any(|s| matches!(s, Section::Block { label, .. } if label == "Credits")));
     }
 }

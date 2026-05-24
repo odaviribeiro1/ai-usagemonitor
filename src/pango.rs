@@ -28,7 +28,9 @@ pub fn color_span(color: &str, text: &str) -> String {
 
 /// Escape `&`, `<`, `>` for Pango markup (which is XML-ish).
 pub fn escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 /// Map a usage percentage to a severity tier, matching `color_for`
@@ -110,7 +112,10 @@ pub fn progress_bar(pct: i32, fill_color: &str, theme: &Theme, marker_pct: Optio
         repeat_char(EMPTY, pre_e)
     ));
     // Marker (single filled cell in marker color).
-    out.push_str(&format!("<span foreground='{}'>{}</span>", theme.marker, FILLED));
+    out.push_str(&format!(
+        "<span foreground='{}'>{}</span>",
+        theme.marker, FILLED
+    ));
     // Post-marker segment: filled run, then empties to fill the bar.
     out.push_str(&format!(
         "<span foreground='{fill_color}'>{}</span>",

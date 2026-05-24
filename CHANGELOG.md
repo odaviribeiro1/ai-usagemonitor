@@ -11,6 +11,29 @@ Each release is also published at
 
 Nothing yet.
 
+## [0.4.0] — 2026-05-24
+
+### Added
+
+- Added unit coverage for TUI primary-vendor reselection after settings changes.
+
+### Changed
+
+- Ran a code-quality pass across the Rust codebase, removing stale abstractions
+  and tightening formatting while preserving existing behavior.
+- Centralized shared Waybar refresh and HTTP client timeout constants so the
+  widget and TUI do not carry duplicated hardcoded values.
+- Simplified repeated widget setup for cache directories and theme overrides.
+
+### Fixed
+
+- Fixed the TUI Settings save path so saved API keys and primary-vendor changes
+  are reloaded immediately before refreshing tabs.
+
+### Security
+
+- Removed the unused `async-trait` dependency from the direct dependency tree.
+
 ## [0.3.3] — 2026-05-24
 
 ### Added
@@ -171,7 +194,8 @@ vendors. Highlights:
 - Live API smoke test suite (`make smoke`) that exercises the real
   undocumented endpoints to detect schema drift before users do.
 
-[Unreleased]: https://github.com/akitaonrails/ai-usagebar/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/akitaonrails/ai-usagebar/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.4.0
 [0.3.3]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.3.3
 [0.3.2]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.3.2
 [0.3.1]: https://github.com/akitaonrails/ai-usagebar/releases/tag/v0.3.1

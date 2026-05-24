@@ -159,7 +159,6 @@ fn id_to_vendor(id: crate::vendor::VendorId) -> Vendor {
 }
 
 impl Cli {
-
     /// True when we should emit Waybar JSON. Default behavior: JSON when
     /// stdout is piped, pretty when on a TTY (unless `--json` is set).
     pub fn output_json(&self) -> bool {
@@ -222,19 +221,30 @@ mod tests {
     fn claudebar_compatible_flag_surface() {
         let cli = Cli::parse_from([
             "ai-usagebar",
-            "--icon", "󰚩",
-            "--format", "{session_pct}% · {session_reset}",
-            "--tooltip-format", "S:{session_pct}",
-            "--pace-tolerance", "10",
+            "--icon",
+            "󰚩",
+            "--format",
+            "{session_pct}% · {session_reset}",
+            "--tooltip-format",
+            "S:{session_pct}",
+            "--pace-tolerance",
+            "10",
             "--format-pace-color",
             "--tooltip-pace-pts",
-            "--color-low", "#50fa7b",
-            "--color-mid", "#f1fa8c",
-            "--color-high", "#ffb86c",
-            "--color-critical", "#ff5555",
+            "--color-low",
+            "#50fa7b",
+            "--color-mid",
+            "#f1fa8c",
+            "--color-high",
+            "#ffb86c",
+            "--color-critical",
+            "#ff5555",
         ]);
         assert_eq!(cli.icon.as_deref(), Some("󰚩"));
-        assert_eq!(cli.format.as_deref(), Some("{session_pct}% · {session_reset}"));
+        assert_eq!(
+            cli.format.as_deref(),
+            Some("{session_pct}% · {session_reset}")
+        );
         assert_eq!(cli.tooltip_format.as_deref(), Some("S:{session_pct}"));
         assert_eq!(cli.pace_tolerance, 10);
         assert!(cli.format_pace_color);

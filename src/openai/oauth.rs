@@ -42,9 +42,7 @@ where
     let v = serde_json::Value::deserialize(d)?;
     Ok(match v {
         serde_json::Value::Null => None,
-        serde_json::Value::Number(n) => n
-            .as_u64()
-            .or_else(|| n.as_f64().map(|f| f as u64)),
+        serde_json::Value::Number(n) => n.as_u64().or_else(|| n.as_f64().map(|f| f as u64)),
         _ => None,
     })
 }
@@ -78,9 +76,8 @@ pub async fn refresh(
             body: msg,
         });
     }
-    serde_json::from_str(&body).map_err(|e| {
-        AppError::Schema(format!("openai token response: {e}; body: {body}"))
-    })
+    serde_json::from_str(&body)
+        .map_err(|e| AppError::Schema(format!("openai token response: {e}; body: {body}")))
 }
 
 pub fn needs_refresh(expires_at_secs: i64, now_secs: i64) -> bool {
@@ -110,7 +107,9 @@ mod tests {
             .create_async()
             .await;
         let client = reqwest::Client::new();
-        let r = refresh(&client, &format!("{}/oauth/token", server.url()), "old").await.unwrap();
+        let r = refresh(&client, &format!("{}/oauth/token", server.url()), "old")
+            .await
+            .unwrap();
         assert_eq!(r.access_token, "new-at");
         assert_eq!(r.refresh_token.as_deref(), Some("new-rt"));
         assert_eq!(r.id_token.as_deref(), Some("new-id"));
@@ -127,7 +126,9 @@ mod tests {
             .create_async()
             .await;
         let client = reqwest::Client::new();
-        let err = refresh(&client, &format!("{}/oauth/token", server.url()), "x").await.unwrap_err();
+        let err = refresh(&client, &format!("{}/oauth/token", server.url()), "x")
+            .await
+            .unwrap_err();
         match err {
             AppError::Http { status, body } => {
                 assert_eq!(status, 400);

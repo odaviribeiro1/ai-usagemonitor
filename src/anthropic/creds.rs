@@ -94,8 +94,7 @@ fn capitalize_first(s: &str) -> String {
 
 /// Default location: `~/.claude/.credentials.json`.
 pub fn default_path() -> Result<PathBuf> {
-    let home = std::env::var_os("HOME")
-        .ok_or_else(|| AppError::Other("HOME not set".into()))?;
+    let home = std::env::var_os("HOME").ok_or_else(|| AppError::Other("HOME not set".into()))?;
     Ok(PathBuf::from(home).join(".claude/.credentials.json"))
 }
 

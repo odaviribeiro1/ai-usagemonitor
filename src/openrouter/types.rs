@@ -84,7 +84,10 @@ mod tests {
 
     #[test]
     fn combine_builds_snapshot() {
-        let c = CreditsData { total_credits: 100.0, total_usage: 30.0 };
+        let c = CreditsData {
+            total_credits: 100.0,
+            total_usage: 30.0,
+        };
         let k = KeyData {
             label: "key-A".into(),
             limit: Some(50.0),

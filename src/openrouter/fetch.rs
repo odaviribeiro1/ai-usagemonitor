@@ -91,10 +91,7 @@ fn fallback_silent(cache: &Cache) -> Result<FetchOutcome> {
     Ok(reuse_cache(bytes, cache, true))
 }
 
-fn fallback_with_error(
-    cache: &Cache,
-    last_error: Option<(u16, String)>,
-) -> Result<FetchOutcome> {
+fn fallback_with_error(cache: &Cache, last_error: Option<(u16, String)>) -> Result<FetchOutcome> {
     let Some(bytes) = cache.maybe_payload()? else {
         return Err(AppError::Other("openrouter: no usable cache".into()));
     };
@@ -104,18 +101,17 @@ fn fallback_with_error(
 }
 
 fn reuse_cache(bytes: Vec<u8>, cache: &Cache, stale: bool) -> FetchOutcome {
-    let snap = parse_cache(&bytes)
-        .unwrap_or_else(|_| OpenRouterSnapshot {
-            label: "OpenRouter".into(),
-            total_credits: 0.0,
-            total_usage: 0.0,
-            usage_daily: 0.0,
-            usage_weekly: 0.0,
-            usage_monthly: 0.0,
-            is_free_tier: true,
-            limit: None,
-            limit_remaining: None,
-        });
+    let snap = parse_cache(&bytes).unwrap_or_else(|_| OpenRouterSnapshot {
+        label: "OpenRouter".into(),
+        total_credits: 0.0,
+        total_usage: 0.0,
+        usage_daily: 0.0,
+        usage_weekly: 0.0,
+        usage_monthly: 0.0,
+        is_free_tier: true,
+        limit: None,
+        limit_remaining: None,
+    });
     FetchOutcome {
         snapshot: snap,
         stale,
@@ -126,9 +122,9 @@ fn reuse_cache(bytes: Vec<u8>, cache: &Cache, stale: bool) -> FetchOutcome {
 
 fn parse_cache(bytes: &[u8]) -> Result<OpenRouterSnapshot> {
     let v: serde_json::Value = serde_json::from_slice(bytes)?;
-    let s = v.get("snapshot").ok_or_else(|| {
-        AppError::Schema("openrouter cache missing 'snapshot' field".into())
-    })?;
+    let s = v
+        .get("snapshot")
+        .ok_or_else(|| AppError::Schema("openrouter cache missing 'snapshot' field".into()))?;
     Ok(OpenRouterSnapshot {
         label: s["label"].as_str().unwrap_or("OpenRouter").to_string(),
         total_credits: s["total_credits"].as_f64().unwrap_or(0.0),
@@ -181,8 +177,7 @@ async fn fetch_one<T: for<'de> serde::Deserialize<'de>>(
             .send(),
     )
     .await
-    .map_err(|_| AppError::Transport(format!("openrouter timeout: {url}")))?
-    ?;
+    .map_err(|_| AppError::Transport(format!("openrouter timeout: {url}")))??;
 
     let status = resp.status();
     let bytes = resp.bytes().await?;
@@ -194,9 +189,8 @@ async fn fetch_one<T: for<'de> serde::Deserialize<'de>>(
             body,
         });
     }
-    let env: OrEnvelope<T> = serde_json::from_slice(&bytes).map_err(|e| {
-        AppError::Schema(format!("openrouter {url}: {e}"))
-    })?;
+    let env: OrEnvelope<T> = serde_json::from_slice(&bytes)
+        .map_err(|e| AppError::Schema(format!("openrouter {url}: {e}")))?;
     Ok(env.data)
 }
 
@@ -238,9 +232,15 @@ mod tests {
             credits: format!("{}/api/v1/credits", server.url()),
             key: format!("{}/api/v1/key", server.url()),
         };
-        let out = fetch_snapshot(&client, "sk-or-test", &cache, &endpoints, Duration::from_secs(0))
-            .await
-            .unwrap();
+        let out = fetch_snapshot(
+            &client,
+            "sk-or-test",
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+        )
+        .await
+        .unwrap();
         assert_eq!(out.snapshot.total_credits, 100.0);
         assert_eq!(out.snapshot.total_usage, 25.5);
         assert!((out.snapshot.balance() - 74.5).abs() < 1e-9);

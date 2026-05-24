@@ -1,24 +1,23 @@
-//! Vendor abstraction. Each vendor (`anthropic`, `openai`, `zai`,
-//! `openrouter`) implements the `Vendor` trait so the widget and TUI can
-//! dispatch over them without knowing the wire details.
+//! Shared vendor IDs and renderer/fetcher structs used by the widget and TUI.
 //!
 //! Snapshots remain a discriminated `VendorSnapshot` enum because the four
-//! vendors have genuinely different shapes — see `usage.rs`. The trait is a
-//! narrow surface around fetching + rendering; the actual data passes through
-//! as a snapshot variant.
+//! vendors have genuinely different shapes — see `usage.rs`.
 
-use std::collections::HashMap;
+use std::time::Duration;
 
-use async_trait::async_trait;
 use clap::ValueEnum;
 
-use crate::error::Result;
-use crate::theme::Theme;
 use crate::usage::VendorSnapshot;
 use crate::widget::cli::Cli;
 
+/// Outer reqwest client timeout shared by widget and TUI entry points.
+/// Vendor fetchers still apply their own tighter per-request timeouts.
+pub const HTTP_CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// Stable enum used by `--vendor` and in config files.
-#[derive(Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Debug, Clone, Copy, ValueEnum, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum VendorId {
     Anthropic,
@@ -79,31 +78,6 @@ impl RenderOpts {
             tooltip_pace_pts: cli.tooltip_pace_pts,
         }
     }
-}
-
-/// Vendor surface — fetch + render. Implementations live in
-/// `crate::{anthropic,openai,zai,openrouter}`.
-#[async_trait]
-pub trait Vendor: Send + Sync {
-    fn id(&self) -> VendorId;
-    fn display_name(&self) -> String;
-    fn default_format(&self) -> &'static str;
-    async fn fetch(&self, cli: &Cli) -> Result<VendorOutcome>;
-    fn placeholders(
-        &self,
-        snap: &VendorSnapshot,
-        theme: &Theme,
-        opts: &RenderOpts,
-        now: chrono::DateTime<chrono::Utc>,
-    ) -> HashMap<&'static str, String>;
-    fn render_tooltip(
-        &self,
-        outcome: &VendorOutcome,
-        theme: &Theme,
-        opts: &RenderOpts,
-        now: chrono::DateTime<chrono::Utc>,
-    ) -> String;
-    fn severity(&self, snap: &VendorSnapshot) -> crate::pacing::PaceSeverity;
 }
 
 #[cfg(test)]

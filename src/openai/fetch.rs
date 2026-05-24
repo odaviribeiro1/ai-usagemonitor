@@ -158,7 +158,11 @@ fn fallback_silent(cache: &Cache, plan_hint: Option<&str>) -> Result<FetchOutcom
     Ok(reuse(bytes, cache, true, plan_hint))
 }
 
-fn handle_auth_failure(cache: &Cache, plan_hint: Option<&str>, transient: bool) -> Result<FetchOutcome> {
+fn handle_auth_failure(
+    cache: &Cache,
+    plan_hint: Option<&str>,
+    transient: bool,
+) -> Result<FetchOutcome> {
     let Some(bytes) = cache.maybe_payload()? else {
         return if transient {
             Err(AppError::Transport(
@@ -201,9 +205,8 @@ async fn fetch_usage(client: &reqwest::Client, url: &str, t: &Tokens) -> Result<
             body,
         });
     }
-    let _: UsageResponse = serde_json::from_slice(&bytes).map_err(|e| {
-        AppError::Schema(format!("openai usage response: {e}"))
-    })?;
+    let _: UsageResponse = serde_json::from_slice(&bytes)
+        .map_err(|e| AppError::Schema(format!("openai usage response: {e}")))?;
     Ok(bytes)
 }
 
@@ -217,8 +220,8 @@ mod tests {
     fn fake_jwt(claims: serde_json::Value) -> String {
         let h = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .encode(br#"{"alg":"none","typ":"JWT"}"#);
-        let p = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(claims.to_string().as_bytes());
+        let p =
+            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(claims.to_string().as_bytes());
         format!("{h}.{p}.sig")
     }
 
@@ -267,9 +270,15 @@ mod tests {
             usage: format!("{}/backend-api/wham/usage", server.url()),
             token: format!("{}/oauth/token", server.url()),
         };
-        let out = fetch_snapshot(&client, creds.path(), &cache, &endpoints, Duration::from_secs(0))
-            .await
-            .unwrap();
+        let out = fetch_snapshot(
+            &client,
+            creds.path(),
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+        )
+        .await
+        .unwrap();
         assert_eq!(out.snapshot.plan, "ChatGPT Plus");
         assert_eq!(out.snapshot.session.utilization_pct, 1);
         assert!(!out.stale);
@@ -296,9 +305,15 @@ mod tests {
             usage: format!("{}/backend-api/wham/usage", server.url()),
             token: format!("{}/oauth/token", server.url()),
         };
-        let out = fetch_snapshot(&client, creds.path(), &cache, &endpoints, Duration::from_secs(0))
-            .await
-            .unwrap();
+        let out = fetch_snapshot(
+            &client,
+            creds.path(),
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+        )
+        .await
+        .unwrap();
         assert!(out.stale);
         assert_eq!(out.snapshot.session.utilization_pct, 50);
         assert_eq!(out.last_error.as_ref().map(|(c, _)| *c), Some(500));

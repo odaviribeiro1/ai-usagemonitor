@@ -150,20 +150,57 @@ fn build_placeholders(input: &RenderInput) -> HashMap<&'static str, String> {
         ("vendor_short", "cld".to_string()),
         ("plan", snap.plan.clone()),
         ("session_pct", snap.session.utilization_pct.to_string()),
-        ("session_reset", countdown::format(snap.session.resets_at, input.now)),
+        (
+            "session_reset",
+            countdown::format(snap.session.resets_at, input.now),
+        ),
         ("session_elapsed", session.elapsed_pct.to_string()),
         ("session_bar", session_bar.clone()),
         ("weekly_pct", snap.weekly.utilization_pct.to_string()),
-        ("weekly_reset", countdown::format(snap.weekly.resets_at, input.now)),
+        (
+            "weekly_reset",
+            countdown::format(snap.weekly.resets_at, input.now),
+        ),
         ("weekly_elapsed", weekly.elapsed_pct.to_string()),
         ("weekly_bar", weekly_bar.clone()),
-        ("sonnet_pct", sonnet_window.map(|w| w.utilization_pct.to_string()).unwrap_or_else(|| "0".into())),
-        ("sonnet_reset", sonnet_window.map(|w| countdown::format(w.resets_at, input.now)).unwrap_or_else(|| "—".into())),
-        ("sonnet_elapsed", sonnet.as_ref().map(|s| s.elapsed_pct.to_string()).unwrap_or_else(|| "0".into())),
+        (
+            "sonnet_pct",
+            sonnet_window
+                .map(|w| w.utilization_pct.to_string())
+                .unwrap_or_else(|| "0".into()),
+        ),
+        (
+            "sonnet_reset",
+            sonnet_window
+                .map(|w| countdown::format(w.resets_at, input.now))
+                .unwrap_or_else(|| "—".into()),
+        ),
+        (
+            "sonnet_elapsed",
+            sonnet
+                .as_ref()
+                .map(|s| s.elapsed_pct.to_string())
+                .unwrap_or_else(|| "0".into()),
+        ),
         ("sonnet_bar", sonnet_bar.clone()),
-        ("extra_spent", snap.extra.map(|e| e.spent.fmt_dollars()).unwrap_or_default()),
-        ("extra_limit", snap.extra.map(|e| e.limit.fmt_dollars()).unwrap_or_default()),
-        ("extra_pct", snap.extra.map(|e| e.percent().to_string()).unwrap_or_else(|| "0".into())),
+        (
+            "extra_spent",
+            snap.extra
+                .map(|e| e.spent.fmt_dollars())
+                .unwrap_or_default(),
+        ),
+        (
+            "extra_limit",
+            snap.extra
+                .map(|e| e.limit.fmt_dollars())
+                .unwrap_or_default(),
+        ),
+        (
+            "extra_pct",
+            snap.extra
+                .map(|e| e.percent().to_string())
+                .unwrap_or_else(|| "0".into()),
+        ),
         ("extra_bar", extra_bar),
     ]);
 
@@ -174,7 +211,13 @@ fn build_placeholders(input: &RenderInput) -> HashMap<&'static str, String> {
     } else {
         // Empty placeholders so `{sonnet_pace}` etc. don't render the literal
         // brace text when sonnet is absent.
-        insert_pace(&mut v, "sonnet", &pacing::Pacing::neutral(), input.format_pace_color, theme);
+        insert_pace(
+            &mut v,
+            "sonnet",
+            &pacing::Pacing::neutral(),
+            input.format_pace_color,
+            theme,
+        );
     }
     v
 }
@@ -335,7 +378,12 @@ fn render_default_tooltip(input: &RenderInput) -> String {
             input.pace_tolerance,
         );
         let sonnet_bar = if input.tooltip_pace_pts {
-            pango::progress_bar(sw.utilization_pct, sonnet_color, theme, Some(sonnet_pacing.elapsed_pct))
+            pango::progress_bar(
+                sw.utilization_pct,
+                sonnet_color,
+                theme,
+                Some(sonnet_pacing.elapsed_pct),
+            )
         } else {
             pango::progress_bar(sw.utilization_pct, sonnet_color, theme, None)
         };
@@ -473,7 +521,10 @@ mod tests {
             session,
             weekly,
             sonnet: Some(sonnet),
-            extra: Some(ExtraUsage { limit: Cents(5000), spent: Cents(250) }),
+            extra: Some(ExtraUsage {
+                limit: Cents(5000),
+                spent: Cents(250),
+            }),
         };
         FetchOutcome {
             snapshot: snap,

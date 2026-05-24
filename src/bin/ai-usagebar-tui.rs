@@ -13,8 +13,11 @@ use std::time::Duration;
 use ai_usagebar::config::Config;
 use ai_usagebar::tui::app::{App, REFRESH_INTERVAL, TabState, refresh_one};
 use ai_usagebar::tui::view::draw;
+use ai_usagebar::vendor::{HTTP_CLIENT_TIMEOUT, VendorId};
 use chrono::Utc;
-use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers};
+use crossterm::event::{
+    self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers,
+};
 use crossterm::execute;
 use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
@@ -33,7 +36,7 @@ async fn main() {
 }
 
 async fn run() -> io::Result<()> {
-    let config = Config::load().unwrap_or_default();
+    let mut config = Config::load().unwrap_or_default();
     let vendors = config.enabled_vendors();
     if vendors.is_empty() {
         eprintln!("No vendors are enabled in ~/.config/ai-usagebar/config.toml. Exiting.");
@@ -41,7 +44,7 @@ async fn run() -> io::Result<()> {
     }
 
     let client = Client::builder()
-        .timeout(Duration::from_secs(30))
+        .timeout(HTTP_CLIENT_TIMEOUT)
         .build()
         .map_err(io::Error::other)?;
 
@@ -53,7 +56,7 @@ async fn run() -> io::Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let res = event_loop(&mut terminal, &mut app, &client, &config).await;
+    let res = event_loop(&mut terminal, &mut app, &client, &mut config).await;
 
     disable_raw_mode()?;
     execute!(
@@ -69,20 +72,11 @@ async fn event_loop<B: ratatui::backend::Backend>(
     terminal: &mut Terminal<B>,
     app: &mut App,
     client: &Client,
-    config: &Config,
+    config: &mut Config,
 ) -> io::Result<()> {
     // Kick off initial fetches for every vendor in parallel.
     let (tx, mut rx) = mpsc::unbounded_channel::<(usize, TabState)>();
-    for (i, v) in app.vendors.clone().into_iter().enumerate() {
-        let tx = tx.clone();
-        let client = client.clone();
-        let cfg = config.clone();
-        let theme = app.theme.clone();
-        tokio::spawn(async move {
-            let state = refresh_one(&client, &cfg, &theme, v).await;
-            let _ = tx.send((i, state));
-        });
-    }
+    spawn_all(app, client, config, &tx);
 
     let mut tick = tokio::time::interval(REFRESH_INTERVAL);
     tick.tick().await; // consume the immediate tick.
@@ -120,8 +114,8 @@ async fn event_loop<B: ratatui::backend::Backend>(
                                     // Re-load config so the new primary takes effect
                                     // on the next render, and queue an immediate refresh
                                     // of all vendors so newly-set API keys are picked up.
-                                    let new_cfg = ai_usagebar::config::Config::load().unwrap_or_default();
-                                    let _ = new_cfg; // future: re-apply primary to active tab
+                                    *config = ai_usagebar::config::Config::load().unwrap_or_default();
+                                    app.select_primary(config.ui.primary);
                                     spawn_all(app, client, config, &tx);
                                 }
                             }
@@ -142,15 +136,7 @@ async fn event_loop<B: ratatui::backend::Backend>(
                         if matches!(k.code, KeyCode::Char('r')) {
                             if let Some(v) = app.active_vendor() {
                                 let idx = app.active;
-                                let tx = tx.clone();
-                                let client = client.clone();
-                                let cfg = config.clone();
-                                let theme = app.theme.clone();
-                                app.tabs[idx] = TabState::Loading;
-                                tokio::spawn(async move {
-                                    let state = refresh_one(&client, &cfg, &theme, v).await;
-                                    let _ = tx.send((idx, state));
-                                });
+                                spawn_one(app, idx, v, client, config, &tx);
                             }
                         }
                         if matches!(k.code, KeyCode::Char('R')) {
@@ -174,16 +160,26 @@ fn spawn_all(
     tx: &mpsc::UnboundedSender<(usize, TabState)>,
 ) {
     for (i, v) in app.vendors.clone().into_iter().enumerate() {
-        let tx = tx.clone();
-        let client = client.clone();
-        let cfg = config.clone();
-        let theme = app.theme.clone();
-        app.tabs[i] = TabState::Loading;
-        tokio::spawn(async move {
-            let state = refresh_one(&client, &cfg, &theme, v).await;
-            let _ = tx.send((i, state));
-        });
+        spawn_one(app, i, v, client, config, tx);
     }
+}
+
+fn spawn_one(
+    app: &mut App,
+    idx: usize,
+    vendor: VendorId,
+    client: &Client,
+    config: &Config,
+    tx: &mpsc::UnboundedSender<(usize, TabState)>,
+) {
+    let tx = tx.clone();
+    let client = client.clone();
+    let cfg = config.clone();
+    app.tabs[idx] = TabState::Loading;
+    tokio::spawn(async move {
+        let state = refresh_one(&client, &cfg, vendor).await;
+        let _ = tx.send((idx, state));
+    });
 }
 
 fn handle_key(app: &mut App, code: KeyCode, mods: KeyModifiers) -> bool {

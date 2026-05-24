@@ -156,14 +156,9 @@ pub async fn fetch_snapshot(
     }
 }
 
-fn reuse_cache(
-    bytes: Vec<u8>,
-    plan_label: String,
-    cache: &Cache,
-    stale: bool,
-) -> FetchOutcome {
-    let snap = parse_payload(&bytes, plan_label)
-        .unwrap_or_else(|_| empty_snapshot("Unknown".into()));
+fn reuse_cache(bytes: Vec<u8>, plan_label: String, cache: &Cache, stale: bool) -> FetchOutcome {
+    let snap =
+        parse_payload(&bytes, plan_label).unwrap_or_else(|_| empty_snapshot("Unknown".into()));
     FetchOutcome {
         snapshot: snap,
         stale,
@@ -191,7 +186,9 @@ fn fallback_to_cache(
 
 fn fallback_to_cache_silent(cache: &Cache, plan_label: String) -> Result<FetchOutcome> {
     let Some(bytes) = cache.maybe_payload()? else {
-        return Err(AppError::Transport("no cache and network unreachable".into()));
+        return Err(AppError::Transport(
+            "no cache and network unreachable".into(),
+        ));
     };
     let snap = parse_payload(&bytes, plan_label)?;
     Ok(FetchOutcome {
@@ -202,11 +199,7 @@ fn fallback_to_cache_silent(cache: &Cache, plan_label: String) -> Result<FetchOu
     })
 }
 
-fn handle_auth_failure(
-    cache: &Cache,
-    plan_label: String,
-    transient: bool,
-) -> Result<FetchOutcome> {
+fn handle_auth_failure(cache: &Cache, plan_label: String, transient: bool) -> Result<FetchOutcome> {
     let Some(bytes) = cache.maybe_payload()? else {
         return if transient {
             Err(AppError::Transport(
@@ -236,11 +229,7 @@ fn empty_snapshot(plan_label: String) -> AnthropicSnapshot {
     UsageResponse::default().into_snapshot(plan_label)
 }
 
-async fn fetch_usage(
-    client: &reqwest::Client,
-    url: &str,
-    creds: &OauthCreds,
-) -> Result<Vec<u8>> {
+async fn fetch_usage(client: &reqwest::Client, url: &str, creds: &OauthCreds) -> Result<Vec<u8>> {
     let resp = client
         .get(url)
         .header("Authorization", format!("Bearer {}", creds.access_token))
@@ -254,15 +243,13 @@ async fn fetch_usage(
     if status.is_success() {
         // Validate it's a usage shape — keep claudebar's "must have five_hour"
         // sanity check (claudebar:385).
-        let _: UsageResponse = serde_json::from_slice(&bytes).map_err(|e| {
-            AppError::Schema(format!("usage response unparseable: {e}"))
-        })?;
+        let _: UsageResponse = serde_json::from_slice(&bytes)
+            .map_err(|e| AppError::Schema(format!("usage response unparseable: {e}")))?;
         Ok(bytes.to_vec())
     } else {
         let body = String::from_utf8_lossy(&bytes).into_owned();
-        let msg = oauth::parse_error_body(&body).unwrap_or_else(|| {
-            body.chars().take(200).collect()
-        });
+        let msg =
+            oauth::parse_error_body(&body).unwrap_or_else(|| body.chars().take(200).collect());
         Err(AppError::Http {
             status: status.as_u16(),
             body: msg,
@@ -315,10 +302,15 @@ mod tests {
             usage: "http://localhost:1/should-not-be-called".into(),
             token: "http://localhost:1/should-not-be-called".into(),
         };
-        let outcome =
-            fetch_snapshot(&client, creds.path(), &cache, &endpoints, Duration::from_secs(60))
-                .await
-                .unwrap();
+        let outcome = fetch_snapshot(
+            &client,
+            creds.path(),
+            &cache,
+            &endpoints,
+            Duration::from_secs(60),
+        )
+        .await
+        .unwrap();
         assert_eq!(outcome.snapshot.session.utilization_pct, 42);
         assert!(!outcome.stale);
     }
@@ -343,10 +335,15 @@ mod tests {
             usage: format!("{}/api/oauth/usage", server.url()),
             token: format!("{}/v1/oauth/token", server.url()),
         };
-        let outcome =
-            fetch_snapshot(&client, creds.path(), &cache, &endpoints, Duration::from_secs(0))
-                .await
-                .unwrap();
+        let outcome = fetch_snapshot(
+            &client,
+            creds.path(),
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+        )
+        .await
+        .unwrap();
         assert_eq!(outcome.snapshot.session.utilization_pct, 50);
         assert!(!outcome.stale);
         m.assert_async().await;
@@ -378,10 +375,15 @@ mod tests {
             usage: format!("{}/api/oauth/usage", server.url()),
             token: format!("{}/v1/oauth/token", server.url()),
         };
-        let outcome =
-            fetch_snapshot(&client, creds.path(), &cache, &endpoints, Duration::from_secs(0))
-                .await
-                .unwrap();
+        let outcome = fetch_snapshot(
+            &client,
+            creds.path(),
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+        )
+        .await
+        .unwrap();
         assert!(outcome.stale);
         assert_eq!(outcome.snapshot.session.utilization_pct, 12);
         assert_eq!(outcome.last_error.as_ref().map(|(c, _)| *c), Some(429));
@@ -404,10 +406,15 @@ mod tests {
             usage: "http://127.0.0.1:1/api/oauth/usage".into(),
             token: "http://127.0.0.1:1/v1/oauth/token".into(),
         };
-        let err =
-            fetch_snapshot(&client, creds.path(), &cache, &endpoints, Duration::from_secs(0))
-                .await
-                .unwrap_err();
+        let err = fetch_snapshot(
+            &client,
+            creds.path(),
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+        )
+        .await
+        .unwrap_err();
         assert!(err.is_transient(), "expected transient error, got {err:?}");
     }
 }

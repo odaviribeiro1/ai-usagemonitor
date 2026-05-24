@@ -125,8 +125,7 @@ async fn fetch_live(client: &reqwest::Client, url: &str, api_key: &str) -> Resul
             .send(),
     )
     .await
-    .map_err(|_| AppError::Transport(format!("zai timeout: {url}")))?
-    ?;
+    .map_err(|_| AppError::Transport(format!("zai timeout: {url}")))??;
 
     let status = resp.status();
     let bytes = resp.bytes().await?.to_vec();
@@ -140,9 +139,8 @@ async fn fetch_live(client: &reqwest::Client, url: &str, api_key: &str) -> Resul
     }
 
     // Sanity check we got a valid envelope. Schema drift surfaces here.
-    let _: Envelope = serde_json::from_slice(&bytes).map_err(|e| {
-        AppError::Schema(format!("zai quota response: {e}"))
-    })?;
+    let _: Envelope = serde_json::from_slice(&bytes)
+        .map_err(|e| AppError::Schema(format!("zai quota response: {e}")))?;
     Ok(bytes)
 }
 
@@ -180,9 +178,16 @@ mod tests {
         let endpoints = Endpoints {
             quota: format!("{}/api/monitor/usage/quota/limit", server.url()),
         };
-        let out = fetch_snapshot(&client, "fake-key", &cache, &endpoints, Duration::from_secs(0), None)
-            .await
-            .unwrap();
+        let out = fetch_snapshot(
+            &client,
+            "fake-key",
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+            None,
+        )
+        .await
+        .unwrap();
         assert_eq!(out.snapshot.plan, "GLM Coding Pro");
         assert_eq!(out.snapshot.session.as_ref().unwrap().utilization_pct, 42);
         assert_eq!(out.snapshot.weekly.as_ref().unwrap().utilization_pct, 15);
@@ -208,9 +213,16 @@ mod tests {
         let endpoints = Endpoints {
             quota: format!("{}/api/monitor/usage/quota/limit", server.url()),
         };
-        let out = fetch_snapshot(&client, "k", &cache, &endpoints, Duration::from_secs(0), None)
-            .await
-            .unwrap();
+        let out = fetch_snapshot(
+            &client,
+            "k",
+            &cache,
+            &endpoints,
+            Duration::from_secs(0),
+            None,
+        )
+        .await
+        .unwrap();
         assert!(out.stale);
         assert_eq!(out.snapshot.session.as_ref().unwrap().utilization_pct, 10);
         assert_eq!(out.last_error.as_ref().map(|(c, _)| *c), Some(401));

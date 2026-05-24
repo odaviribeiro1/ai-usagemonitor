@@ -14,13 +14,13 @@ use crate::config::Config;
 use crate::error::{AppError, Result};
 use crate::openai;
 use crate::openrouter;
-use crate::zai;
 use crate::theme::Theme;
-use crate::vendor::{RenderOpts, VendorOutcome};
+use crate::vendor::{HTTP_CLIENT_TIMEOUT, RenderOpts, VendorOutcome};
 use crate::waybar::WaybarOutput;
 use crate::widget::cli::{Cli, Vendor};
 use crate::widget::pretty::print_pretty;
 use crate::widget::render::{DEFAULT_FORMAT, RenderInput, render_anthropic};
+use crate::zai;
 
 /// Entry point — runs to completion and ALWAYS returns Ok with exit code 0
 /// in the caller. Mirrors claudebar's `die()` invariant.
@@ -57,9 +57,7 @@ async fn run_cycle(cli: &Cli) -> i32 {
     // Refresh the bar immediately. The Waybar module's `signal: 13` setting
     // means SIGRTMIN+13 re-runs the exec. SIGRTMIN is libc-dependent; the
     // shell-safe value on Linux glibc is signal 47 (= SIGRTMIN(34)+13).
-    let _ = std::process::Command::new("pkill")
-        .args(["-RTMIN+13", "waybar"])
-        .status();
+    crate::waybar::request_refresh();
     0
 }
 
@@ -112,29 +110,20 @@ async fn build_output(cli: &Cli) -> Result<WaybarOutput> {
 
 async fn openai_output(cli: &Cli, config: &Config) -> Result<WaybarOutput> {
     let client = http_client()?;
-    let cache = match cli.cache_dir.as_deref() {
-        Some(p) => Cache::at(p.join("openai")),
-        None => Cache::for_vendor("openai")?,
-    };
+    let cache = vendor_cache(cli, "openai")?;
     let creds_path = match config.openai.codex_auth_path.as_deref() {
         Some(p) => p.to_path_buf(),
         None => openai::creds::default_path()?,
     };
     let endpoints = openai::fetch::Endpoints::default();
-    let outcome = match openai::fetch_snapshot(&client, &creds_path, &cache, &endpoints, DEFAULT_TTL).await {
-        Ok(o) => o,
-        Err(e) if e.is_transient() => return Ok(WaybarOutput::loading(cli.icon.as_deref())),
-        Err(e) => return Err(e),
-    };
+    let outcome =
+        match openai::fetch_snapshot(&client, &creds_path, &cache, &endpoints, DEFAULT_TTL).await {
+            Ok(o) => o,
+            Err(e) if e.is_transient() => return Ok(WaybarOutput::loading(cli.icon.as_deref())),
+            Err(e) => return Err(e),
+        };
 
-    let theme = Theme::default()
-        .merged_with_omarchy()
-        .with_overrides(
-            cli.color_low.clone(),
-            cli.color_mid.clone(),
-            cli.color_high.clone(),
-            cli.color_critical.clone(),
-        );
+    let theme = theme_from_cli(cli);
     let snap = outcome.snapshot.clone();
     let vendor_outcome: VendorOutcome = outcome.into();
     let opts = RenderOpts::from_cli(cli);
@@ -154,10 +143,7 @@ async fn zai_output(cli: &Cli, config: &Config) -> Result<WaybarOutput> {
         config.zai.api_key.as_deref(),
     )?;
     let client = http_client()?;
-    let cache = match cli.cache_dir.as_deref() {
-        Some(p) => Cache::at(p.join("zai")),
-        None => Cache::for_vendor("zai")?,
-    };
+    let cache = vendor_cache(cli, "zai")?;
     let endpoints = zai::fetch::Endpoints::default();
     let outcome = match zai::fetch_snapshot(
         &client,
@@ -174,14 +160,7 @@ async fn zai_output(cli: &Cli, config: &Config) -> Result<WaybarOutput> {
         Err(e) => return Err(e),
     };
 
-    let theme = Theme::default()
-        .merged_with_omarchy()
-        .with_overrides(
-            cli.color_low.clone(),
-            cli.color_mid.clone(),
-            cli.color_high.clone(),
-            cli.color_critical.clone(),
-        );
+    let theme = theme_from_cli(cli);
     let snap = outcome.snapshot.clone();
     let vendor_outcome: VendorOutcome = outcome.into();
     let opts = RenderOpts::from_cli(cli);
@@ -201,10 +180,7 @@ async fn openrouter_output(cli: &Cli, config: &Config) -> Result<WaybarOutput> {
         config.openrouter.api_key.as_deref(),
     )?;
     let client = http_client()?;
-    let cache = match cli.cache_dir.as_deref() {
-        Some(p) => Cache::at(p.join("openrouter")),
-        None => Cache::for_vendor("openrouter")?,
-    };
+    let cache = vendor_cache(cli, "openrouter")?;
     let endpoints = openrouter::fetch::Endpoints::default();
     let outcome = match openrouter::fetch_snapshot(
         &client,
@@ -220,14 +196,7 @@ async fn openrouter_output(cli: &Cli, config: &Config) -> Result<WaybarOutput> {
         Err(e) => return Err(e),
     };
 
-    let theme = Theme::default()
-        .merged_with_omarchy()
-        .with_overrides(
-            cli.color_low.clone(),
-            cli.color_mid.clone(),
-            cli.color_high.clone(),
-            cli.color_critical.clone(),
-        );
+    let theme = theme_from_cli(cli);
 
     let snap = outcome.snapshot.clone();
     let vendor_outcome: VendorOutcome = outcome.into();
@@ -243,10 +212,7 @@ async fn openrouter_output(cli: &Cli, config: &Config) -> Result<WaybarOutput> {
 
 async fn anthropic_output(cli: &Cli) -> Result<WaybarOutput> {
     let client = http_client()?;
-    let cache = match cli.cache_dir.as_deref() {
-        Some(p) => Cache::at(p.join("anthropic")),
-        None => Cache::for_vendor("anthropic")?,
-    };
+    let cache = vendor_cache(cli, "anthropic")?;
     let creds_path = match cli.creds_path.as_deref() {
         Some(p) => p.to_path_buf(),
         None => anthropic::creds::default_path()?,
@@ -269,20 +235,16 @@ async fn anthropic_output(cli: &Cli) -> Result<WaybarOutput> {
         Err(e) => return Err(e),
     };
 
-    let theme = Theme::default()
-        .merged_with_omarchy()
-        .with_overrides(
-            cli.color_low.clone(),
-            cli.color_mid.clone(),
-            cli.color_high.clone(),
-            cli.color_critical.clone(),
-        );
+    let theme = theme_from_cli(cli);
 
     Ok(render_with_theme(&outcome, &theme, cli))
 }
 
 fn render_with_theme(outcome: &FetchOutcome, theme: &Theme, cli: &Cli) -> WaybarOutput {
-    let format_owned = cli.format.clone().unwrap_or_else(|| DEFAULT_FORMAT.to_string());
+    let format_owned = cli
+        .format
+        .clone()
+        .unwrap_or_else(|| DEFAULT_FORMAT.to_string());
     let input = RenderInput {
         outcome,
         theme,
@@ -299,9 +261,25 @@ fn render_with_theme(outcome: &FetchOutcome, theme: &Theme, cli: &Cli) -> Waybar
 
 fn http_client() -> Result<Client> {
     Client::builder()
-        .timeout(Duration::from_secs(30))
+        .timeout(HTTP_CLIENT_TIMEOUT)
         .build()
         .map_err(|e| AppError::Other(format!("http client init: {e}")))
+}
+
+fn vendor_cache(cli: &Cli, vendor: &str) -> Result<Cache> {
+    match cli.cache_dir.as_deref() {
+        Some(p) => Ok(Cache::at(p.join(vendor))),
+        None => Cache::for_vendor(vendor),
+    }
+}
+
+fn theme_from_cli(cli: &Cli) -> Theme {
+    Theme::default().merged_with_omarchy().with_overrides(
+        cli.color_low.clone(),
+        cli.color_mid.clone(),
+        cli.color_high.clone(),
+        cli.color_critical.clone(),
+    )
 }
 
 /// Fallback output when everything goes wrong — always renders a `⚠` widget.
@@ -364,12 +342,7 @@ mod tests {
             c
         };
         let outcome = dummy_outcome();
-        let theme = Theme::default().with_overrides(
-            cli.color_low.clone(),
-            None,
-            None,
-            None,
-        );
+        let theme = Theme::default().with_overrides(cli.color_low.clone(), None, None, None);
         let out = render_with_theme(&outcome, &theme, &cli);
         // Bar text should contain our format substitution, wrapped in the
         // overridden low-color span.

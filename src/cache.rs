@@ -103,7 +103,8 @@ impl Cache {
         let p = self.payload_path();
         let mut f = File::open(&p).map_err(|e| AppError::io_at(&p, e))?;
         let mut buf = Vec::new();
-        f.read_to_end(&mut buf).map_err(|e| AppError::io_at(&p, e))?;
+        f.read_to_end(&mut buf)
+            .map_err(|e| AppError::io_at(&p, e))?;
         Ok(buf)
     }
 
@@ -115,8 +116,11 @@ impl Cache {
             .prefix(".usage.")
             .tempfile_in(&self.dir)
             .map_err(|e| AppError::io_at(&self.dir, e))?;
-        tmp.write_all(bytes).map_err(|e| AppError::io_at(tmp.path(), e))?;
-        tmp.as_file_mut().sync_all().map_err(|e| AppError::io_at(tmp.path(), e))?;
+        tmp.write_all(bytes)
+            .map_err(|e| AppError::io_at(tmp.path(), e))?;
+        tmp.as_file_mut()
+            .sync_all()
+            .map_err(|e| AppError::io_at(tmp.path(), e))?;
         tmp.persist(self.payload_path())
             .map_err(|e| AppError::io_at(self.payload_path(), e.error))?;
         // A successful write clears any stale marker.
@@ -205,16 +209,23 @@ impl Drop for LockGuard {
 /// need to write small sidecar files (credentials, etc.).
 pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
     let dir = path.parent().ok_or_else(|| {
-        AppError::Other(format!("atomic_write: path has no parent: {}", path.display()))
+        AppError::Other(format!(
+            "atomic_write: path has no parent: {}",
+            path.display()
+        ))
     })?;
     fs::create_dir_all(dir).map_err(|e| AppError::io_at(dir, e))?;
     let mut tmp = tempfile::Builder::new()
         .prefix(".tmp.")
         .tempfile_in(dir)
         .map_err(|e| AppError::io_at(dir, e))?;
-    tmp.write_all(bytes).map_err(|e| AppError::io_at(tmp.path(), e))?;
-    tmp.as_file_mut().sync_all().map_err(|e| AppError::io_at(tmp.path(), e))?;
-    tmp.persist(path).map_err(|e| AppError::io_at(path, e.error))?;
+    tmp.write_all(bytes)
+        .map_err(|e| AppError::io_at(tmp.path(), e))?;
+    tmp.as_file_mut()
+        .sync_all()
+        .map_err(|e| AppError::io_at(tmp.path(), e))?;
+    tmp.persist(path)
+        .map_err(|e| AppError::io_at(path, e.error))?;
     Ok(())
 }
 
@@ -263,9 +274,19 @@ mod tests {
         let (_td, cache) = fixture();
         cache.write_payload(b"x").unwrap();
         // Fresh = within a generous TTL.
-        assert!(cache.fresh_payload(Duration::from_secs(10)).unwrap().is_some());
+        assert!(
+            cache
+                .fresh_payload(Duration::from_secs(10))
+                .unwrap()
+                .is_some()
+        );
         // Force "stale" by passing a zero TTL — payload is older than 0s.
-        assert!(cache.fresh_payload(Duration::from_secs(0)).unwrap().is_none());
+        assert!(
+            cache
+                .fresh_payload(Duration::from_secs(0))
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]

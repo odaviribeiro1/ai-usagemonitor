@@ -98,10 +98,7 @@ mod tests {
     #[test]
     fn body_line_is_right_padded_to_inner_width() {
         // Box width = visible_width(widest) + 1 = "longest" (7) + 1 = 8.
-        let lines = vec![
-            Line::Center("a".into()),
-            Line::Body("longest".into()),
-        ];
+        let lines = vec![Line::Center("a".into()), Line::Body("longest".into())];
         let out = render_bordered(&lines, &theme());
         // The body line should be padded so the right `│` lands at inner_w + 2.
         // We don't assert exact character offsets (Pango spans intervene), just

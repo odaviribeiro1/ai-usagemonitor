@@ -82,12 +82,13 @@ impl Envelope {
     /// snapshot with all windows `None` when `data` is missing.
     pub fn into_snapshot(self, config_plan_tier: Option<&str>) -> ZaiSnapshot {
         let data = self.data.unwrap_or_default();
-        let mut tokens_iter = data
-            .limits
-            .iter()
-            .filter(|l| l.kind == "TOKENS_LIMIT");
-        let session = tokens_iter.next().map(|l| to_window(l, chrono::Duration::hours(5)));
-        let weekly = tokens_iter.next().map(|l| to_window(l, chrono::Duration::days(7)));
+        let mut tokens_iter = data.limits.iter().filter(|l| l.kind == "TOKENS_LIMIT");
+        let session = tokens_iter
+            .next()
+            .map(|l| to_window(l, chrono::Duration::hours(5)));
+        let weekly = tokens_iter
+            .next()
+            .map(|l| to_window(l, chrono::Duration::days(7)));
         let mcp = data
             .limits
             .iter()
@@ -113,9 +114,9 @@ impl Envelope {
 
 fn to_window(l: &LimitEntry, dur: chrono::Duration) -> UsageWindow {
     let utilization_pct = l.percentage.round().clamp(0.0, 100.0) as i32;
-    let resets_at = l.next_reset_time.and_then(|ms| {
-        chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ms)
-    });
+    let resets_at = l
+        .next_reset_time
+        .and_then(chrono::DateTime::<chrono::Utc>::from_timestamp_millis);
     UsageWindow {
         utilization_pct,
         resets_at,

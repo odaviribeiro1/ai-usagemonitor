@@ -72,9 +72,10 @@ where
     let v = serde_json::Value::deserialize(d)?;
     Ok(match v {
         serde_json::Value::Null => 0,
-        serde_json::Value::Number(n) => {
-            n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)).unwrap_or(0)
-        }
+        serde_json::Value::Number(n) => n
+            .as_i64()
+            .or_else(|| n.as_f64().map(|f| f as i64))
+            .unwrap_or(0),
         _ => 0,
     })
 }
@@ -106,11 +107,7 @@ where
 
 impl UsageResponse {
     pub fn into_snapshot(self, plan_hint: Option<&str>) -> OpenAiSnapshot {
-        let plan_type = self
-            .plan_type
-            .as_deref()
-            .or(plan_hint)
-            .unwrap_or("Unknown");
+        let plan_type = self.plan_type.as_deref().or(plan_hint).unwrap_or("Unknown");
         let plan = format!("ChatGPT {}", capitalize(plan_type));
 
         let rl = self.rate_limit.unwrap_or_default();
@@ -259,7 +256,8 @@ mod tests {
 
     #[test]
     fn used_percent_clamps_to_hundred() {
-        let body = r#"{"rate_limit":{"primary_window":{"used_percent":250,"limit_window_seconds":1}}}"#;
+        let body =
+            r#"{"rate_limit":{"primary_window":{"used_percent":250,"limit_window_seconds":1}}}"#;
         let r: UsageResponse = serde_json::from_str(body).unwrap();
         let s = r.into_snapshot(None);
         assert_eq!(s.session.utilization_pct, 100);

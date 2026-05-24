@@ -6,10 +6,10 @@ use chrono::{DateTime, Utc};
 
 use crate::countdown;
 use crate::format::{placeholders, substitute};
-use crate::tooltip::{Line as TooltipLine, render_bordered};
 use crate::pacing::PaceSeverity;
 use crate::pango::{self, color_span, escape, severity_color, severity_for};
 use crate::theme::Theme;
+use crate::tooltip::{Line as TooltipLine, render_bordered};
 use crate::usage::{UsageWindow, ZaiSnapshot};
 use crate::vendor::{RenderOpts, VendorOutcome};
 use crate::waybar::{Class, WaybarOutput};
@@ -18,14 +18,12 @@ use super::fetch::FetchOutcome;
 
 pub const DEFAULT_FORMAT: &str = "{zai_session_pct}% · {zai_session_reset}";
 
-pub struct ZaiVendor;
-
-pub fn build_placeholders(
-    snap: &ZaiSnapshot,
-    _theme: &Theme,
-    now: DateTime<Utc>,
-) -> HashMap<&'static str, String> {
-    let session_pct = snap.session.as_ref().map(|w| w.utilization_pct).unwrap_or(0);
+pub fn build_placeholders(snap: &ZaiSnapshot, now: DateTime<Utc>) -> HashMap<&'static str, String> {
+    let session_pct = snap
+        .session
+        .as_ref()
+        .map(|w| w.utilization_pct)
+        .unwrap_or(0);
     let weekly_pct = snap.weekly.as_ref().map(|w| w.utilization_pct).unwrap_or(0);
     let mcp_pct = snap.mcp.as_ref().map(|w| w.utilization_pct).unwrap_or(0);
     placeholders(vec![
@@ -67,7 +65,11 @@ fn window_reset(w: &Option<UsageWindow>) -> Option<DateTime<Utc>> {
 }
 
 pub fn severity(snap: &ZaiSnapshot) -> PaceSeverity {
-    let session = snap.session.as_ref().map(|w| w.utilization_pct).unwrap_or(0);
+    let session = snap
+        .session
+        .as_ref()
+        .map(|w| w.utilization_pct)
+        .unwrap_or(0);
     let weekly = snap.weekly.as_ref().map(|w| w.utilization_pct).unwrap_or(0);
     let mcp = snap.mcp.as_ref().map(|w| w.utilization_pct).unwrap_or(0);
     severity_for([session, weekly, mcp].into_iter().max().unwrap_or(0))
@@ -81,8 +83,11 @@ pub fn render(
     now: DateTime<Utc>,
 ) -> WaybarOutput {
     let class = Class::from(severity(snap));
-    let format = opts.format.clone().unwrap_or_else(|| DEFAULT_FORMAT.to_string());
-    let values = build_placeholders(snap, theme, now);
+    let format = opts
+        .format
+        .clone()
+        .unwrap_or_else(|| DEFAULT_FORMAT.to_string());
+    let values = build_placeholders(snap, now);
 
     let mut text = substitute(&format, &values);
     if outcome.stale {
@@ -116,8 +121,6 @@ fn render_tooltip(
 ) -> String {
     let blue = &theme.blue;
     let dim = &theme.dim;
-    let fg = &theme.fg;
-
     let mut lines: Vec<TooltipLine> = Vec::new();
     lines.push(TooltipLine::Center(format!(
         "<span font_weight='bold' foreground='{blue}'>{plan}</span>",
@@ -172,7 +175,6 @@ fn render_tooltip(
         }
         None => "—".to_string(),
     };
-    let _ = fg; // currently unused but kept symmetric with anthropic
     lines.push(TooltipLine::Body("".into()));
     lines.push(TooltipLine::Sep);
     lines.push(TooltipLine::Body(format!(

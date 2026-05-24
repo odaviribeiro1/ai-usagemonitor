@@ -7,10 +7,10 @@ use chrono::{DateTime, Utc};
 
 use crate::countdown;
 use crate::format::{placeholders, substitute};
-use crate::tooltip::{Line as TooltipLine, render_bordered};
 use crate::pacing::{self, PaceSeverity};
 use crate::pango::{self, color_span, escape, severity_color, severity_for};
 use crate::theme::Theme;
+use crate::tooltip::{Line as TooltipLine, render_bordered};
 use crate::usage::{OpenAiSnapshot, OpenAiSource};
 use crate::vendor::{RenderOpts, VendorOutcome};
 use crate::waybar::{Class, WaybarOutput};
@@ -19,11 +19,8 @@ use super::fetch::FetchOutcome;
 
 pub const DEFAULT_FORMAT: &str = "{oai_session_pct}% · {oai_session_reset}";
 
-pub struct OpenAiVendor;
-
 pub fn build_placeholders(
     snap: &OpenAiSnapshot,
-    _theme: &Theme,
     opts: &RenderOpts,
     now: DateTime<Utc>,
 ) -> HashMap<&'static str, String> {
@@ -71,9 +68,15 @@ pub fn build_placeholders(
         // single `--format '{vendor_short} {session_pct}% · {session_reset}'`
         // renders correctly during scroll-cycle.
         ("session_pct", snap.session.utilization_pct.to_string()),
-        ("session_reset", countdown::format(snap.session.resets_at, now)),
+        (
+            "session_reset",
+            countdown::format(snap.session.resets_at, now),
+        ),
         ("weekly_pct", snap.weekly.utilization_pct.to_string()),
-        ("weekly_reset", countdown::format(snap.weekly.resets_at, now)),
+        (
+            "weekly_reset",
+            countdown::format(snap.weekly.resets_at, now),
+        ),
         ("plan", snap.plan.clone()),
         ("oai_plan", snap.plan.clone()),
         ("oai_session_pct", snap.session.utilization_pct.to_string()),
@@ -106,7 +109,10 @@ pub fn build_placeholders(
 }
 
 pub fn severity(snap: &OpenAiSnapshot) -> PaceSeverity {
-    let mut max = snap.session.utilization_pct.max(snap.weekly.utilization_pct);
+    let mut max = snap
+        .session
+        .utilization_pct
+        .max(snap.weekly.utilization_pct);
     if let Some(c) = &snap.code_review {
         max = max.max(c.utilization_pct);
     }
@@ -121,8 +127,11 @@ pub fn render(
     now: DateTime<Utc>,
 ) -> WaybarOutput {
     let class = Class::from(severity(snap));
-    let format = opts.format.clone().unwrap_or_else(|| DEFAULT_FORMAT.to_string());
-    let values = build_placeholders(snap, theme, opts, now);
+    let format = opts
+        .format
+        .clone()
+        .unwrap_or_else(|| DEFAULT_FORMAT.to_string());
+    let values = build_placeholders(snap, opts, now);
 
     let mut text = substitute(&format, &values);
     if outcome.stale {
@@ -138,7 +147,7 @@ pub fn render(
     let tooltip = if let Some(fmt) = opts.tooltip_format.as_deref() {
         substitute(fmt, &values)
     } else {
-        render_tooltip(outcome, snap, theme, opts, now)
+        render_tooltip(outcome, snap, theme, now)
     };
 
     WaybarOutput {
@@ -152,7 +161,6 @@ fn render_tooltip(
     outcome: &VendorOutcome,
     snap: &OpenAiSnapshot,
     theme: &Theme,
-    _opts: &RenderOpts,
     now: DateTime<Utc>,
 ) -> String {
     let blue = &theme.blue;

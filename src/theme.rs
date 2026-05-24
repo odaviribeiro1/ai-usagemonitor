@@ -233,7 +233,9 @@ mod tests {
     #[test]
     fn missing_omarchy_file_is_silent() {
         let t = Theme::default();
-        let merged = t.clone().merged_with_omarchy_file(Path::new("/nonexistent/path.toml"));
+        let merged = t
+            .clone()
+            .merged_with_omarchy_file(Path::new("/nonexistent/path.toml"));
         assert_eq!(t, merged);
     }
 

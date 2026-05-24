@@ -14,9 +14,9 @@ pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // tabs
-            Constraint::Min(1),     // body
-            Constraint::Length(1),  // footer
+            Constraint::Length(3), // tabs
+            Constraint::Min(1),    // body
+            Constraint::Length(1), // footer
         ])
         .split(f.area());
 
@@ -90,12 +90,7 @@ fn draw_body(f: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let Some(tab) = app.tabs.get(app.active) else {
         return;
     };
-    let vendor = app
-        .vendors
-        .get(app.active)
-        .copied()
-        .unwrap_or(VendorId::Anthropic);
-    let sections = panels::sections_for(vendor, tab, chrono::Utc::now(), 5);
+    let sections = panels::sections_for(tab, chrono::Utc::now(), 5);
     panels::render(f, inner, &app.theme, &sections);
 }
 

@@ -35,8 +35,7 @@ pub struct Tokens {
 
 /// Default location: `~/.codex/auth.json`.
 pub fn default_path() -> Result<PathBuf> {
-    let home =
-        std::env::var_os("HOME").ok_or_else(|| AppError::Other("HOME not set".into()))?;
+    let home = std::env::var_os("HOME").ok_or_else(|| AppError::Other("HOME not set".into()))?;
     Ok(PathBuf::from(home).join(".codex/auth.json"))
 }
 
@@ -78,9 +77,10 @@ impl Tokens {
 /// Parse a JWT's `exp` claim. Returns None for malformed tokens.
 fn parse_jwt_exp(token: &str) -> Option<i64> {
     let claims = parse_jwt_claims(token)?;
-    claims.get("exp").and_then(|v| v.as_i64()).or_else(|| {
-        claims.get("exp").and_then(|v| v.as_f64()).map(|f| f as i64)
-    })
+    claims
+        .get("exp")
+        .and_then(|v| v.as_i64())
+        .or_else(|| claims.get("exp").and_then(|v| v.as_f64()).map(|f| f as i64))
 }
 
 fn parse_jwt_claims(token: &str) -> Option<serde_json::Value> {
@@ -111,8 +111,8 @@ mod tests {
     fn fake_jwt(claims: serde_json::Value) -> String {
         let header = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .encode(br#"{"alg":"none","typ":"JWT"}"#);
-        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(claims.to_string().as_bytes());
+        let payload =
+            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(claims.to_string().as_bytes());
         format!("{header}.{payload}.sig")
     }
 
@@ -141,7 +141,10 @@ mod tests {
         );
         let f = write_auth(&body);
         let auth = read_from(f.path()).unwrap();
-        assert_eq!(auth.tokens.plan_type_from_id_token().as_deref(), Some("plus"));
+        assert_eq!(
+            auth.tokens.plan_type_from_id_token().as_deref(),
+            Some("plus")
+        );
     }
 
     #[test]
@@ -172,7 +175,8 @@ mod tests {
         auth.tokens.access_token = "NEW".into();
         write_back(f.path(), &auth).unwrap();
 
-        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
         assert_eq!(v["some_other_field"], "keep-me");
         assert_eq!(v["tokens"]["access_token"], "NEW");
     }

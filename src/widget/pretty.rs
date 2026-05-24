@@ -127,7 +127,9 @@ mod tests {
     fn nested_spans_handled_simply() {
         // Each closing tag emits a full reset; that's acceptable for local
         // pretty output (the inner color still renders before the reset).
-        let s = pango_to_ansi("<span foreground='#ff0000'>a<span foreground='#00ff00'>b</span>c</span>");
+        let s = pango_to_ansi(
+            "<span foreground='#ff0000'>a<span foreground='#00ff00'>b</span>c</span>",
+        );
         // Both colors must appear somewhere in the output.
         assert!(s.contains("\x1b[38;2;255;0;0m"));
         assert!(s.contains("\x1b[38;2;0;255;0m"));

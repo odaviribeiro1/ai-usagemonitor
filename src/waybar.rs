@@ -6,6 +6,19 @@
 
 use serde::Serialize;
 
+/// Waybar refresh signal used by the sample module config (`signal: 13`).
+pub const REFRESH_SIGNAL: &str = "-RTMIN+13";
+
+/// Process name used for best-effort refreshes after cycling/saving settings.
+pub const PROCESS_NAME: &str = "waybar";
+
+/// Best-effort Waybar refresh. Failing is harmless when Waybar is not running.
+pub fn request_refresh() {
+    let _ = std::process::Command::new("pkill")
+        .args([REFRESH_SIGNAL, PROCESS_NAME])
+        .status();
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct WaybarOutput {
     pub text: String,
