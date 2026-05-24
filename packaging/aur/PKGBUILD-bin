@@ -16,7 +16,7 @@ optdepends=(
 provides=("$_pkgname=$pkgver")
 conflicts=("$_pkgname")
 source=("$_pkgname-$pkgver-x86_64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-linux-x86_64.tar.gz")
-sha256sums=('SKIP')  # replaced after the GitHub Release uploads complete
+sha256sums=('cbada026a763576b684356f1d38a91d0695d1ba0a839a73417ddae5dff262ac4')
 
 package() {
     install -Dm0755 -t "$pkgdir/usr/bin/"                "ai-usagebar"

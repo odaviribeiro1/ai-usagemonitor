@@ -4,6 +4,9 @@
 # Sandbox marker, not part of the project.
 .ai-jail
 
+# Claude Code local scratch state.
+.claude/
+
 # Local secrets — never commit
 .env
 .env.local

@@ -83,6 +83,8 @@ jobs:
           merge-multiple: true
 
       - name: Generate release body
+        env:
+          TAG: ${{ inputs.ref || github.ref_name }}
         run: |
           {
             echo "## Install"
@@ -97,7 +99,7 @@ jobs:
             echo "### Manual"
             echo
             echo '```bash'
-            echo "curl -fsSL https://github.com/akitaonrails/ai-usagebar/releases/download/${GITHUB_REF_NAME}/ai-usagebar-linux-x86_64.tar.gz | tar xz -C ~/.local/bin ai-usagebar ai-usagebar-tui"
+            echo "curl -fsSL https://github.com/akitaonrails/ai-usagebar/releases/download/${TAG}/ai-usagebar-linux-x86_64.tar.gz | tar xz -C ~/.local/bin ai-usagebar ai-usagebar-tui"
             echo '```'
             echo
             echo "## Checksums (SHA256)"
