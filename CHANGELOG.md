@@ -1,15 +1,39 @@
 # Changelog
 
-All notable changes to **ai-usagebar** are recorded here. The format is based on
+All notable changes to **ai-usagemonitor** are recorded here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Each release is also published at
-<https://github.com/akitaonrails/ai-usagebar/releases>.
+This is a macOS-focused redistribution of
+[akitaonrails/ai-usagebar](https://github.com/akitaonrails/ai-usagebar); releases
+are published at <https://github.com/odaviribeiro1/ai-usagemonitor/releases>.
 
 ## [Unreleased]
 
 Nothing yet.
+
+## [0.4.1] — 2026-05-25
+
+First release of **ai-usagemonitor**, a macOS-focused redistribution of
+[akitaonrails/ai-usagebar](https://github.com/akitaonrails/ai-usagebar) (MIT).
+
+### Added
+
+- macOS menu-bar integration via SwiftBar (`macos/swiftbar/`): one item per
+  vendor (Claude, OpenAI), a colored dropdown, and one-click show/hide actions.
+- A simple macOS install tutorial in the README, plus the macOS Keychain
+  credential-export note for the Anthropic vendor.
+
+### Changed
+
+- Renamed the crate to `ai-usagemonitor` (binaries `ai-usagebar` / `-tui` and
+  the library name are unchanged, so existing installs keep working).
+- Reframed the project as macOS-only.
+
+### Removed
+
+- Arch/AUR packaging, the tag-driven GitHub release workflow, and the Waybar
+  TUI screenshots.
 
 ## [0.4.0] — 2026-05-24
 
