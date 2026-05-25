@@ -4,7 +4,7 @@ version = "0.4.0"
 edition = "2024"
 rust-version = "1.86"
 license = "MIT"
-description = "Waybar widget, macOS menu bar (SwiftBar), and TUI for AI plan usage across Anthropic, OpenAI, Z.AI, and OpenRouter"
+description = "macOS menu bar (SwiftBar) and terminal TUI for AI plan usage across Anthropic, OpenAI, Z.AI, and OpenRouter"
 
 [lib]
 name = "ai_usagebar"
