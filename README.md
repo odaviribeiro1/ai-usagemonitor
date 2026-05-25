@@ -1,4 +1,6 @@
-# ai-usagebar
+# ai-usagemonitor
+
+> **ai-usagemonitor** is a redistribution of **[akitaonrails/ai-usagebar](https://github.com/akitaonrails/ai-usagebar)** (MIT License — © 2026 AkitaOnRails), renamed and packaged with **macOS menu-bar integration** via SwiftBar (see [`macos/swiftbar/`](macos/swiftbar/)). The original Rust source and the [`LICENSE`](LICENSE) are kept unchanged — all upstream credit belongs to AkitaOnRails. The macOS additions are © 2026 Davi Ribeiro, also under MIT.
 
 Waybar widget and tabbed TUI for AI plan usage across **Anthropic Claude**, **OpenAI Codex/ChatGPT**, **Z.AI (GLM)**, and **OpenRouter**.
 
@@ -40,6 +42,35 @@ sudo make install                  # → /usr/local/bin
 # or
 make install PREFIX=$HOME/.local   # → ~/.local/bin
 ```
+
+### macOS (menu bar via SwiftBar)
+
+On macOS the Waybar widget doesn't apply, but the TUI and the `--json`/`--pretty`
+output work in any terminal. `make install` won't work here (it relies on GNU
+`install -D`), so install the binaries with Cargo:
+
+```bash
+cargo install --path .   # builds + installs ai-usagebar and ai-usagebar-tui to ~/.cargo/bin
+```
+
+For a menu-bar widget, this repo ships SwiftBar plugins under
+[`macos/swiftbar/`](macos/swiftbar/) (one item per vendor). Quick start:
+
+```bash
+brew install --cask swiftbar font-hack-nerd-font
+cp macos/swiftbar/*.sh "$HOME/Library/Application Support/SwiftBar/Plugins/"
+chmod +x "$HOME/Library/Application Support/SwiftBar/Plugins/"*.sh
+open -a SwiftBar
+```
+
+> On macOS the Claude CLI stores its OAuth token in the **Keychain**, not in
+> `~/.claude/.credentials.json`. Export it once so the `anthropic` vendor works:
+> ```bash
+> security find-generic-password -s "Claude Code-credentials" -w > ~/.claude/.credentials.json
+> chmod 600 ~/.claude/.credentials.json
+> ```
+
+See [`macos/swiftbar/README.md`](macos/swiftbar/README.md) for the full setup.
 
 ## Authentication
 
