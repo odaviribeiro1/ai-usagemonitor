@@ -1,10 +1,10 @@
 [package]
-name = "ai-usagebar"
+name = "ai-usagemonitor"
 version = "0.4.0"
 edition = "2024"
 rust-version = "1.86"
 license = "MIT"
-description = "Waybar widget + TUI for AI plan usage across Anthropic, OpenAI, Z.AI, and OpenRouter"
+description = "Waybar widget, macOS menu bar (SwiftBar), and TUI for AI plan usage across Anthropic, OpenAI, Z.AI, and OpenRouter"
 
 [lib]
 name = "ai_usagebar"
