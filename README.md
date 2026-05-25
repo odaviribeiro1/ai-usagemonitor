@@ -4,7 +4,7 @@
 
 A **macOS menu bar** app that shows your AI plan usage — session, weekly and per-model limits — for **Anthropic Claude**, **OpenAI / Codex**, **Z.AI (GLM)**, and **OpenRouter**. It also ships an interactive terminal UI (`ai-usagebar-tui`).
 
-![ai-usagemonitor showing Claude usage in the macOS menu bar, with the dropdown breaking down Session, Weekly and Sonnet-only limits](screenshot.png)
+![ai-usagemonitor showing Claude usage in the macOS menu bar, with the dropdown breaking down Session, Weekly and Sonnet-only limits](menu-bar.png)
 
 ---
 
